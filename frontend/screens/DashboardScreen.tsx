@@ -1,5 +1,7 @@
 import React from 'react';
-import { ScrollView, useColorModeValue } from 'native-base';
+import { ScrollView, useColorModeValue, Button, HStack, Box } from 'native-base';
+import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import ExpenseSummary from '../components/ExpenseSummary';
 import RecentTransactions from '../components/RecentTransactions';
 import ExpenseBreakdown from '../components/ExpenseBreakdown';
@@ -9,6 +11,10 @@ import UserInfo from '../components/UserInfo';
 // DashboardScreen: Shows an overview of expenses and quick stats using modular components
 const DashboardScreen: React.FC = () => {
   const bg = useColorModeValue('gray.50', 'gray.900');
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const border = useColorModeValue('coolGray.200', 'gray.700');
+  const heading = useColorModeValue('gray.900', 'gray.100');
+  const navigation = useNavigation();
   return (
     // Apple-style: Add extra top padding for visual comfort
     <ScrollView flex={1} bg={bg} p={4} pt={8}>

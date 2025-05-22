@@ -1,56 +1,53 @@
 import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import DashboardScreen from './screens/DashboardScreen';
 import ExpensesListScreen from './screens/ExpensesListScreen';
 import AddEditExpenseScreen from './screens/AddEditExpenseScreen';
 import ExpenseDetailScreen from './screens/ExpenseDetailScreen';
-import ProfileScreen from './screens/ProfileScreen';
 import AdminScreen from './screens/AdminScreen';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeBaseProvider } from 'native-base';
+import { NativeBaseProvider, Icon, HStack, Pressable } from 'native-base';
 import { colorModeManager } from './colorModeManager';
+import CategoriesScreen from './screens/CategoriesScreen';
+import ReportsScreen from './screens/ReportsScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import AboutScreen from './screens/AboutScreen';
+import InboxScreen from './screens/InboxScreen';
 
-// Create navigators
-const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// Main tabs: Dashboard, Expenses, Add, Profile
-function MainTabs() {
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName: keyof typeof Ionicons.glyphMap = 'home';
-          if (route.name === 'Dashboard') iconName = 'home';
-          else if (route.name === 'Expenses') iconName = 'list';
-          else if (route.name === 'Add') iconName = 'add-circle';
-          else if (route.name === 'Profile') iconName = 'person';
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Expenses" component={ExpensesListScreen} />
-      <Tab.Screen name="Add" component={AddEditExpenseScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-    </Tab.Navigator>
-  );
-}
-
-// Root stack: Tabs + screens not in tabs (Expense Detail, Admin)
 export default function App() {
   return (
     <NativeBaseProvider colorModeManager={colorModeManager}>
       <NavigationContainer>
         <StatusBar style="auto" />
         <Stack.Navigator>
-          <Stack.Screen name="Main" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="Home"
+            component={DashboardScreen}
+            options={({ navigation }) => ({
+              title: 'Home',
+              headerRight: () => (
+                <HStack space={2}>
+                  <Pressable onPress={() => navigation.navigate('Inbox')}>
+                    <Icon as={Ionicons} name="mail-outline" size="lg" color="gray.700" />
+                  </Pressable>
+                  <Pressable onPress={() => navigation.navigate('Settings')}>
+                    <Icon as={Ionicons} name="settings-outline" size="lg" color="gray.700" />
+                  </Pressable>
+                </HStack>
+              ),
+            })}
+          />
+          <Stack.Screen name="Inbox" component={InboxScreen} options={{ title: 'Inbox' }} />
+          <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
           <Stack.Screen name="Admin" component={AdminScreen} options={{ title: 'Admin' }} />
+          <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Categories' }} />
+          <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Reports' }} />
+          <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </NativeBaseProvider>

@@ -22,7 +22,7 @@ const ExpenseBreakdown = () => {
   const categoryColors = ['blue.400', 'teal.400', 'orange.400', 'gray.400'];
 
   return (
-    <Box p={4} borderWidth={1} borderRadius={16} mb={4} bg={cardBg} borderColor={border} shadow={1}>
+    <Box p={4} borderWidth={1} borderRadius={20} mb={6} bg={cardBg} borderColor={border} shadow={2}>
       <Text fontSize="lg" fontWeight="bold" mb={2} color={heading}>Expense Breakdown</Text>
       {/* Apple-style: Category color dots, bolder names, clear spacing */}
       <VStack space={3}>

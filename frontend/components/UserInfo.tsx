@@ -29,7 +29,7 @@ const UserInfo = () => {
   const greeting = useColorModeValue('gray.700', 'gray.300');
 
   return (
-    <Box p={6} borderWidth={0} borderRadius={20} mb={4} bg={cardBg} shadow={2}>
+    <Box p={4} borderWidth={0} borderRadius={20} mb={6} bg={cardBg} shadow={2}>
       {/* Apple-style: Large avatar, friendly greeting, and name */}
       <HStack space={4} alignItems="center">
         <Avatar size="xl" source={user.avatarUrl ? { uri: user.avatarUrl } : undefined} bg="blue.400">

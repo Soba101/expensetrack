@@ -11,7 +11,7 @@ const QuickActions = () => {
   const heading = useColorModeValue('gray.900', 'gray.100');
 
   return (
-    <Box p={4} borderWidth={1} borderRadius={16} mb={4} bg={cardBg} borderColor={border}>
+    <Box p={4} borderWidth={1} borderRadius={20} mb={6} bg={cardBg} borderColor={border} shadow={2}>
       <Text fontSize="lg" fontWeight="bold" mb={2} color={heading}>Quick Actions</Text>
       {/* Apple-style: Icon buttons, rounded, spaced */}
       <HStack space={4}>
@@ -19,19 +19,19 @@ const QuickActions = () => {
           colorScheme="blue"
           flex={1}
           borderRadius={20}
-          leftIcon={<Ionicons name="add-circle" size={22} color="white" />}
+          leftIcon={<Ionicons name="cloud-upload" size={22} color="white" />}
           _text={{ fontWeight: 'bold', fontSize: 'md' }}
         >
-          Add Expense
+          Upload Receipt
         </Button>
         <Button
           colorScheme="teal"
           flex={1}
           borderRadius={20}
-          leftIcon={<Ionicons name="cloud-upload" size={22} color="white" />}
+          leftIcon={<Ionicons name="add-circle" size={22} color="white" />}
           _text={{ fontWeight: 'bold', fontSize: 'md' }}
         >
-          Upload Receipt
+          Add Expense
         </Button>
       </HStack>
     </Box>
