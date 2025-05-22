@@ -22,6 +22,8 @@
 - **Body:** `{ "image": base64 string, "date": ISO date string, "amount": number, "description": string }`
 - **Response:** `201 Created` with receipt object or error message
 
+**Note:** The client (mobile app) should use an image picker to select or capture a receipt image, convert it to a base64 string, and send it in the `image` field of the request body.
+
 ### List Receipts
 - **GET** `/api/receipts/`
 - **Headers:** `Authorization: Bearer <token>`

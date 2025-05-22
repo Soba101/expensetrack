@@ -3,7 +3,7 @@
 ## Process
 
 ```plaintext
-User -> App: Uploads or captures receipt
+User -> App: Selects or captures receipt image (image picker)
 App -> OCR Service: Sends image
 OCR Service -> App: Returns extracted text
 App: Parses text, pre-fills expense form
@@ -13,7 +13,7 @@ Backend -> DB: Saves data
 ```
 
 ## Steps Explained
-1. User uploads or captures a receipt.
+1. User selects or captures a receipt image using the device's image picker or camera.
 2. App sends the image to the OCR service.
 3. OCR service returns extracted text.
 4. App parses the text and pre-fills the expense form.

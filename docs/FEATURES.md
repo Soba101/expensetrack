@@ -5,8 +5,9 @@
 - (Optional) Social login support.
 
 ## 2. Receipt Capture & Upload
-- Take a photo of a receipt using the device camera.
+- Take a photo of a receipt using the device camera or select an image from the gallery (image picker integration).
 - Upload an image or PDF of a receipt from your device.
+- After uploading, review and edit extracted data before saving as an expense.
 
 ## 3. OCR & Data Extraction
 - Use OCR to extract text from receipts.

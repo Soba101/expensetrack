@@ -23,6 +23,9 @@
 
 ## Component Diagram
 - **Frontend (Mobile/Web):** User interface for capturing/uploading receipts, reviewing data, and viewing reports.
+-   - Lets users select or capture receipt images using the device's camera or gallery.
+-   - Converts images to base64 and sends them to the backend for OCR.
+-   - Receives extracted data, pre-fills an expense form, and allows user review/edit before saving.
 - **Backend API:** Handles authentication, expense CRUD, and OCR processing.
 - **Database:** Stores users, expenses, receipts, and categories.
 - **OCR Service:** Extracts text from receipt images (can be 3rd party or self-hosted).
