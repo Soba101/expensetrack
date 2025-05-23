@@ -19,7 +19,13 @@ type RootStackParamList = {
 
 // QuickActions component provides buttons for common actions
 // Uses theme-aware colors for light/dark mode
-const QuickActions = () => {
+// Define a prop type for onUploadPress
+interface QuickActionsProps {
+  onUploadPress: () => void; // Function to handle upload button press
+}
+
+// const QuickActions = () => {
+const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress }) => {
   // Use theme-aware colors
   const cardBg = useColorModeValue('white', 'gray.800');
   const border = useColorModeValue('coolGray.200', 'gray.700');
@@ -37,6 +43,7 @@ const QuickActions = () => {
           borderRadius={20}
           leftIcon={<Ionicons name="cloud-upload" size={22} color="white" />}
           _text={{ fontWeight: 'bold', fontSize: 'md' }}
+          onPress={onUploadPress}
         >
           Upload Receipt
         </Button>

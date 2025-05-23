@@ -1,6 +1,9 @@
 import React from 'react';
-import { Box, Text, VStack, HStack, Button, useColorModeValue, ScrollView, Center, Icon } from 'native-base';
+import { Box, Text, VStack, HStack, Button, useColorModeValue, ScrollView, Center, Icon, Pressable } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { useNavigation } from '@react-navigation/native';
+import { useEffect } from 'react';
 
 // Mock inbox data: pending receipts to review
 const inboxItems = [
@@ -16,13 +19,38 @@ const InboxScreen: React.FC = () => {
   const heading = useColorModeValue('gray.900', 'gray.100');
   const text = useColorModeValue('gray.800', 'gray.200');
 
+  const navigation = useNavigation();
+
+  // Function to pick an image from the library
+  const pickImage = async () => {
+    // No permissions request is necessary for launching the image library
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: 'images', // Use the string literal 'images'
+      allowsEditing: true, // Allow basic editing
+      aspect: [4, 3], // Maintain a 4:3 aspect ratio
+      quality: 1, // Maximum quality
+    });
+
+    console.log(result);
+
+    if (!result.canceled) {
+      // For now, just log the URI. We will handle the upload later.
+      console.log('Picked image URI:', result.assets[0].uri);
+      // TODO: Implement upload logic here
+    }
+  };
+
   // If inbox is empty, show a friendly message
   if (inboxItems.length === 0) {
     return (
       <Center flex={1} bg={useColorModeValue('gray.50', 'gray.900')} px={4}>
         <Icon as={Ionicons} name="mail-open-outline" size="2xl" color="gray.400" mb={4} />
         <Text fontSize="xl" fontWeight="bold" color={heading} mb={2}>Inbox is empty</Text>
-        <Text color={text} textAlign="center">You're all caught up! New receipts and notifications will appear here.</Text>
+        <Text color={text} textAlign="center" mb={4}>You're all caught up! New receipts and notifications will appear here.</Text>
+        {/* Button to upload a receipt when inbox is empty */}
+        <Button onPress={pickImage} leftIcon={<Icon as={Ionicons} name="cloud-upload-outline" size="sm" />}>
+          Upload Receipt
+        </Button>
       </Center>
     );
   }
