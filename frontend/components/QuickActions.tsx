@@ -1,6 +1,21 @@
 import React from 'react';
 import { Box, Button, HStack, Text, useColorModeValue } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+// Define the type for the navigation stack
+type RootStackParamList = {
+  Home: undefined;
+  Inbox: undefined;
+  Settings: undefined;
+  ExpenseDetail: undefined;
+  ExpensesList: undefined;
+  AddEditExpense: undefined;
+  Categories: undefined;
+  Reports: undefined;
+  About: undefined;
+};
 
 // QuickActions component provides buttons for common actions
 // Uses theme-aware colors for light/dark mode
@@ -9,6 +24,7 @@ const QuickActions = () => {
   const cardBg = useColorModeValue('white', 'gray.800');
   const border = useColorModeValue('coolGray.200', 'gray.700');
   const heading = useColorModeValue('gray.900', 'gray.100');
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   return (
     <Box p={4} borderWidth={1} borderRadius={20} mb={6} bg={cardBg} borderColor={border} shadow={2}>
@@ -30,6 +46,7 @@ const QuickActions = () => {
           borderRadius={20}
           leftIcon={<Ionicons name="add-circle" size={22} color="white" />}
           _text={{ fontWeight: 'bold', fontSize: 'md' }}
+          onPress={() => navigation.navigate('AddEditExpense')}
         >
           Add Expense
         </Button>

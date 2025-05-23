@@ -1,6 +1,21 @@
 import React from 'react';
-import { Box, Text, VStack, HStack, useColorModeValue } from 'native-base';
+import { Box, Text, VStack, HStack, useColorModeValue, Button } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+// Define the type for the navigation stack
+type RootStackParamList = {
+  Home: undefined;
+  Inbox: undefined;
+  Settings: undefined;
+  ExpenseDetail: undefined;
+  ExpensesList: undefined;
+  AddEditExpense: undefined;
+  Categories: undefined;
+  Reports: undefined;
+  About: undefined;
+};
 
 // RecentTransactions component displays a list of recent expenses
 // Uses theme-aware colors for light/dark mode
@@ -32,6 +47,8 @@ const RecentTransactions = () => {
     return iconMap[description as keyof typeof iconMap] || iconMap.default;
   }
 
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
   return (
     <Box p={4} borderWidth={1} borderRadius={20} mb={6} bg={cardBg} borderColor={border} shadow={2}>
       <Text fontSize="lg" fontWeight="bold" mb={2} color={heading}>Recent Transactions</Text>
@@ -48,6 +65,9 @@ const RecentTransactions = () => {
           </HStack>
         ))}
       </VStack>
+      <Button mt={4} colorScheme="blue" borderRadius={16} onPress={() => navigation.navigate('ExpensesList')}>
+        See All
+      </Button>
     </Box>
   );
 };

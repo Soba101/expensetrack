@@ -6,7 +6,6 @@ import DashboardScreen from './screens/DashboardScreen';
 import ExpensesListScreen from './screens/ExpensesListScreen';
 import AddEditExpenseScreen from './screens/AddEditExpenseScreen';
 import ExpenseDetailScreen from './screens/ExpenseDetailScreen';
-import AdminScreen from './screens/AdminScreen';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeBaseProvider, Icon, HStack, Pressable } from 'native-base';
 import { colorModeManager } from './colorModeManager';
@@ -44,7 +43,8 @@ export default function App() {
           <Stack.Screen name="Inbox" component={InboxScreen} options={{ title: 'Inbox' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
-          <Stack.Screen name="Admin" component={AdminScreen} options={{ title: 'Admin' }} />
+          <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ title: 'All Expenses' }} />
+          <Stack.Screen name="AddEditExpense" component={AddEditExpenseScreen} options={{ title: 'Add/Edit Expense' }} />
           <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Categories' }} />
           <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Reports' }} />
           <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
