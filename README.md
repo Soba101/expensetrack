@@ -15,6 +15,18 @@ Track Your Expense is an app that helps you log and manage your expenses by capt
 
 ---
 
+## Mobile Receipt Upload Flow
+
+1. User taps 'Upload Receipt' and selects or captures an image using the device's camera or gallery.
+2. The app converts the image to a base64 string.
+3. The app sends the image to the backend's /api/receipts/ endpoint.
+4. The backend performs OCR and returns extracted data (date, amount, vendor, etc.).
+5. The app pre-fills an expense form with the extracted data.
+6. The user reviews/edits the data and saves the expense.
+7. The app sends the finalized data to the backend for storage.
+
+---
+
 ## Architecture Overview
 
 ```plaintext
