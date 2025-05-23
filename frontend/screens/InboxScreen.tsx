@@ -47,10 +47,6 @@ const InboxScreen: React.FC = () => {
         <Icon as={Ionicons} name="mail-open-outline" size="2xl" color="gray.400" mb={4} />
         <Text fontSize="xl" fontWeight="bold" color={heading} mb={2}>Inbox is empty</Text>
         <Text color={text} textAlign="center" mb={4}>You're all caught up! New receipts and notifications will appear here.</Text>
-        {/* Button to upload a receipt when inbox is empty */}
-        <Button onPress={pickImage} leftIcon={<Icon as={Ionicons} name="cloud-upload-outline" size="sm" />}>
-          Upload Receipt
-        </Button>
       </Center>
     );
   }

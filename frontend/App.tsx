@@ -43,14 +43,9 @@ export default function App() {
           <Stack.Screen 
             name="Inbox" 
             component={InboxScreen} 
-            options={({ navigation }) => ({
-              title: 'Inbox',
-              headerRight: () => (
-                <Pressable onPress={() => console.log('Upload button pressed')}>
-                  <Icon as={Ionicons} name="cloud-upload-outline" size="lg" color="gray.700" />
-                </Pressable>
-              ),
-            })}
+            options={{
+              title: 'Inbox', 
+            }}
           />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
