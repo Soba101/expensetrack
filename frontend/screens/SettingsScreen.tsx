@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { Box, Text, VStack, Button, HStack, useColorMode, Divider, Avatar, useColorModeValue, ScrollView, Pressable } from 'native-base';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../context/AuthContext';
 
 // SettingsScreen: Apple-style user and app settings, appearance, navigation, and account actions
 const SettingsScreen: React.FC = () => {
   const { colorMode, setColorMode } = useColorMode();
   const navigation = useNavigation();
+  const { logout } = useAuth();
   const cardBg = useColorModeValue('white', 'gray.800');
   const border = useColorModeValue('coolGray.200', 'gray.700');
   const heading = useColorModeValue('gray.900', 'gray.100');
@@ -122,7 +124,7 @@ const SettingsScreen: React.FC = () => {
             colorScheme="red"
             borderRadius={16}
             leftIcon={<Ionicons name="log-out" size={22} color="white" />}
-            onPress={() => { /* TODO: Implement logout */ }}
+            onPress={logout}
           >
             Logout
           </Button>
