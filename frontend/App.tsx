@@ -12,9 +12,8 @@ import { NativeBaseProvider, Icon, HStack, Pressable, Spinner, Box } from 'nativ
 import { colorModeManager } from './colorModeManager';
 import CategoriesScreen from './screens/CategoriesScreen';
 import ReportsScreen from './screens/ReportsScreen';
-import SettingsScreen from './screens/SettingsScreen';
 import AboutScreen from './screens/AboutScreen';
-import InboxScreen from './screens/InboxScreen';
+import SettingsScreen from './screens/SettingsScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -53,33 +52,17 @@ const AuthenticatedStack = () => (
     <Stack.Screen
       name="Home"
       component={DashboardScreen}
-      options={({ navigation }) => ({
-        title: 'Home',
-        headerRight: () => (
-          <HStack space={2}>
-            <Pressable onPress={() => navigation.navigate('Inbox' as never)}>
-              <Icon as={Ionicons} name="mail-outline" size="lg" color="gray.700" />
-            </Pressable>
-            <Pressable onPress={() => navigation.navigate('Settings' as never)}>
-              <Icon as={Ionicons} name="settings-outline" size="lg" color="gray.700" />
-            </Pressable>
-          </HStack>
-        ),
-      })}
-    />
-    <Stack.Screen 
-      name="Inbox" 
-      component={InboxScreen} 
       options={{
-        title: 'Inbox', 
+        headerShown: false,
       }}
     />
-    <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+
     <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
     <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ title: 'All Expenses' }} />
     <Stack.Screen name="AddEditExpense" component={AddEditExpenseScreen} options={{ title: 'Add/Edit Expense' }} />
     <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Categories' }} />
     <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Reports' }} />
+    <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
   </Stack.Navigator>
 );

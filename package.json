@@ -20,6 +20,8 @@
   "name": "expensetrack",
   "version": "1.0.0",
   "scripts": {
+    "start": "cd frontend && npx expo start",
+    "backend": "cd backend && npm start",
     "android": "expo run:android",
     "ios": "expo run:ios"
   }

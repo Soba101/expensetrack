@@ -4,9 +4,10 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ExpenseSummary from '../components/ExpenseSummary';
 import RecentTransactions from '../components/RecentTransactions';
-import ExpenseBreakdown from '../components/ExpenseBreakdown';
+
 import QuickActions from '../components/QuickActions';
 import UserInfo from '../components/UserInfo';
+import SmartInsights from '../components/SmartInsights';
 import * as ImagePicker from 'expo-image-picker';
 import * as receiptService from '../services/receiptService';
 
@@ -103,16 +104,16 @@ const DashboardScreen: React.FC = () => {
   };
 
   return (
-    // Apple-style: Add extra top padding for visual comfort
-    <ScrollView flex={1} bg={bg} p={4} pt={8}>
+    // Apple-style: Add extra top padding for visual comfort and prevent card from hitting top
+    <ScrollView flex={1} bg={bg} p={4} pt={16}>
       {/* User info at the top */}
       <UserInfo />
       {/* Quick actions for adding expenses or uploading receipts */}
       <QuickActions onUploadPress={pickImage} isUploading={isUploading} />
-      {/* Expense summary section */}
+      {/* Expense summary section with enhanced design */}
       <ExpenseSummary />
-      {/* Expense breakdown by category */}
-      <ExpenseBreakdown />
+      {/* Smart insights with personalized recommendations */}
+      <SmartInsights />
       {/* Recent transactions list */}
       <RecentTransactions />
     </ScrollView>
