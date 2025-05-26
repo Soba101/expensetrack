@@ -22,10 +22,11 @@ type RootStackParamList = {
 // Define a prop type for onUploadPress
 interface QuickActionsProps {
   onUploadPress: () => void; // Function to handle upload button press
+  isUploading?: boolean; // Optional loading state for upload button
 }
 
 // const QuickActions = () => {
-const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress }) => {
+const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress, isUploading = false }) => {
   // Use theme-aware colors
   const cardBg = useColorModeValue('white', 'gray.800');
   const border = useColorModeValue('coolGray.200', 'gray.700');
@@ -41,11 +42,13 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress }) => {
           colorScheme="blue"
           flex={1}
           borderRadius={20}
-          leftIcon={<Ionicons name="cloud-upload" size={22} color="white" />}
+          leftIcon={<Ionicons name={isUploading ? "hourglass" : "camera"} size={22} color="white" />}
           _text={{ fontWeight: 'bold', fontSize: 'md' }}
           onPress={onUploadPress}
+          isLoading={isUploading}
+          isDisabled={isUploading}
         >
-          Upload Receipt
+          {isUploading ? 'Processing...' : 'Scan Receipt'}
         </Button>
         <Button
           colorScheme="teal"

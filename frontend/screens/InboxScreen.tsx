@@ -1,9 +1,10 @@
-import React from 'react';
-import { Box, Text, VStack, HStack, Button, useColorModeValue, ScrollView, Center, Icon, Pressable } from 'native-base';
+import React, { useState } from 'react';
+import { Box, Text, VStack, HStack, Button, useColorModeValue, ScrollView, Center, Icon, Pressable, useToast } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 import { useEffect } from 'react';
+import * as receiptService from '../services/receiptService';
 
 // Mock inbox data: pending receipts to review
 const inboxItems = [
@@ -18,25 +19,89 @@ const InboxScreen: React.FC = () => {
   const border = useColorModeValue('coolGray.200', 'gray.700');
   const heading = useColorModeValue('gray.900', 'gray.100');
   const text = useColorModeValue('gray.800', 'gray.200');
-
   const navigation = useNavigation();
+  const toast = useToast();
+  
+  // State for upload loading
+  const [isUploading, setIsUploading] = useState(false);
 
-  // Function to pick an image from the library
+  // Function to pick an image from the library and upload it
   const pickImage = async () => {
-    // No permissions request is necessary for launching the image library
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: 'images', // Use the string literal 'images'
-      allowsEditing: true, // Allow basic editing
-      aspect: [4, 3], // Maintain a 4:3 aspect ratio
-      quality: 1, // Maximum quality
-    });
+    try {
+      // No permissions request is necessary for launching the image library
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images', // Use the string literal 'images'
+        allowsEditing: true, // Allow basic editing
+        aspect: [4, 3], // Maintain a 4:3 aspect ratio
+        quality: 0.8, // Good quality but smaller file size
+      });
 
-    console.log(result);
+      console.log('Image picker result:', result);
 
-    if (!result.canceled) {
-      // For now, just log the URI. We will handle the upload later.
-      console.log('Picked image URI:', result.assets[0].uri);
-      // TODO: Implement upload logic here
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const imageUri = result.assets[0].uri;
+        console.log('Selected image URI:', imageUri);
+        
+        // Start upload process
+        await handleImageUpload(imageUri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      toast.show({
+        title: 'Error',
+        description: 'Failed to select image. Please try again.',
+        duration: 3000,
+      });
+    }
+  };
+
+  // Function to handle image processing (without saving to database yet)
+  const handleImageUpload = async (imageUri: string) => {
+    setIsUploading(true);
+    
+    try {
+      // Show loading toast
+      toast.show({
+        title: 'Processing Receipt',
+        description: 'Converting your receipt image...',
+        duration: 2000,
+      });
+
+      // Process the image (convert to base64 and prepare data) - LOCAL ONLY
+      const processedData = await receiptService.processReceiptImage(imageUri);
+      
+      // Prepare receipt data for the form (NOT saved to DB yet)
+      const receiptData = {
+        image: processedData.image,
+        date: processedData.extractedData.date,
+        amount: processedData.extractedData.amount,
+        description: processedData.extractedData.description,
+      };
+
+      console.log('Image processed successfully');
+
+      // Show success message
+      toast.show({
+        title: 'Receipt Processed!',
+        description: 'Please review and edit the details, then save your expense.',
+        duration: 3000,
+      });
+
+      // Navigate to AddEditExpenseScreen with the processed receipt data (not saved yet)
+      (navigation as any).navigate('AddEditExpense', { 
+        receiptData: receiptData,
+        isFromUpload: true 
+      });
+
+    } catch (error: any) {
+      console.error('Processing error:', error);
+      toast.show({
+        title: 'Processing Failed',
+        description: error.message || 'Failed to process receipt. Please try again.',
+        duration: 4000,
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -55,6 +120,21 @@ const InboxScreen: React.FC = () => {
   return (
     <ScrollView flex={1} bg={useColorModeValue('gray.50', 'gray.900')} p={4} pt={8}>
       <VStack space={4}>
+        {/* Upload Receipt Button */}
+        <Box p={4} borderWidth={1} borderRadius={20} mb={2} bg={cardBg} borderColor={border} shadow={2}>
+          <Text fontSize="lg" fontWeight="bold" mb={3} color={heading}>Add New Receipt</Text>
+          <Button
+            colorScheme="blue"
+            borderRadius={20}
+            leftIcon={<Ionicons name={isUploading ? "hourglass" : "cloud-upload"} size={22} color="white" />}
+            _text={{ fontWeight: 'bold', fontSize: 'md' }}
+            onPress={pickImage}
+            isLoading={isUploading}
+            isDisabled={isUploading}
+          >
+            {isUploading ? 'Uploading...' : 'Upload Receipt'}
+          </Button>
+        </Box>
         {inboxItems.map(item => (
           <Box key={item.id} p={4} borderWidth={1} borderRadius={20} mb={2} bg={cardBg} borderColor={border} shadow={2}>
             <HStack alignItems="center" justifyContent="space-between">

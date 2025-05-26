@@ -18,6 +18,21 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
+// Suppress known NativeBase warnings that are harmless
+// These warnings come from NativeBase's internal components and animations
+const originalWarn = console.warn;
+console.warn = (...args) => {
+  if (
+    args[0] && 
+    typeof args[0] === 'string' && 
+    (args[0].includes('Sending `onAnimatedValueUpdate` with no listeners registered') ||
+     args[0].includes('In React 18, SSRProvider is not necessary and is a noop'))
+  ) {
+    return; // Suppress these specific warnings
+  }
+  originalWarn(...args);
+};
+
 const Stack = createNativeStackNavigator();
 
 const AuthenticatedStack = () => (

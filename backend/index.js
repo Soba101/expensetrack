@@ -17,20 +17,21 @@ app.use(express.json({ limit: '10mb' })); // Allow large payloads for base64 ima
 app.use(cors());
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+// Removed deprecated options: useNewUrlParser and useUnifiedTopology
+// These are no longer needed in MongoDB driver v4.0.0+
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
 // Import routes
 const authRoutes = require('./routes/auth');
 const receiptRoutes = require('./routes/receipts');
+const expenseRoutes = require('./routes/expenses');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/receipts', receiptRoutes);
+app.use('/api/expenses', expenseRoutes);
 
 // Basic route for health check
 app.get('/', (req, res) => {
