@@ -10,10 +10,33 @@ Track Your Expense is designed to help users easily log, manage, and analyze the
 - Ensure data privacy and security
 
 ## Main Features
-- User authentication
-- Receipt capture (camera) and upload (image/PDF)
-- OCR-based data extraction
-- Manual review and editing of extracted data
-- Expense management (CRUD, categorization)
-- Reporting and analytics
-- Profile and settings management 
+- User authentication ✅ **COMPLETED**
+- Receipt capture (camera) and upload (image/PDF) 🚧 **IN PROGRESS**
+- OCR-based data extraction 📋 **PLANNED**
+- Manual review and editing of extracted data 📋 **PLANNED**
+- Expense management (CRUD, categorization) 📋 **PLANNED**
+- Reporting and analytics 📋 **PLANNED**
+- Profile and settings management 📋 **PLANNED**
+
+## Current Status
+**Overall Progress: ~15% Complete**
+
+### ✅ What's Working:
+- **User Registration & Login**: Fully functional with modern UI
+- **Authentication System**: JWT-based with persistent sessions
+- **Security**: Password hashing, protected routes, token management
+- **UI/UX**: Responsive design with light/dark mode support
+
+### 🚧 Next Steps:
+1. Implement receipt upload functionality
+2. Integrate OCR service for data extraction
+3. Build expense management features
+4. Add reporting and analytics
+
+## Technology Stack
+- **Frontend**: React Native with Expo
+- **Backend**: Node.js with Express
+- **Database**: MongoDB
+- **Authentication**: JWT tokens with bcrypt
+- **UI Library**: NativeBase
+- **State Management**: React Context API 

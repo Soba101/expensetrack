@@ -1,4 +1,97 @@
-# Architecture
+# Architecture Overview
+
+## System Architecture
+
+### Frontend (React Native + Expo)
+- **Framework**: React Native with Expo for cross-platform mobile development
+- **UI Library**: NativeBase for consistent, accessible components
+- **State Management**: React Context API for authentication state
+- **Navigation**: React Navigation for screen routing
+- **Storage**: AsyncStorage for persistent user sessions
+- **HTTP Client**: Fetch API for backend communication
+
+### Backend (Node.js + Express)
+- **Runtime**: Node.js with Express.js framework
+- **Database**: MongoDB with Mongoose ODM
+- **Authentication**: JWT tokens with bcrypt password hashing
+- **Testing**: Jest with Supertest for API testing
+- **Environment**: dotenv for configuration management
+
+### Database (MongoDB)
+- **Users Collection**: Stores user credentials and profile data
+- **Receipts Collection**: Planned for receipt and expense data
+- **Categories Collection**: Planned for expense categorization
+
+## ✅ Implemented Components
+
+### Authentication System (COMPLETED)
+```
+Frontend                    Backend                     Database
+┌─────────────────┐        ┌─────────────────┐        ┌─────────────────┐
+│ LoginScreen     │───────▶│ /api/auth/login │───────▶│ Users Collection│
+│ RegisterScreen  │        │ /api/auth/register       │                 │
+│ AuthContext     │        │                 │        │ - username      │
+│ AuthService     │        │ JWT Generation  │        │ - password (hash)│
+│ AsyncStorage    │        │ Password Hash   │        │ - role          │
+└─────────────────┘        └─────────────────┘        └─────────────────┘
+```
+
+**Features:**
+- Secure user registration with validation
+- JWT-based authentication with 1-day expiration
+- Password hashing using bcrypt
+- Persistent login sessions
+- Protected route navigation
+- Modern, responsive UI with theme support
+
+## 🚧 Planned Components
+
+### Receipt Processing Flow
+```
+Camera/Gallery ──▶ Image Upload ──▶ OCR Service ──▶ Data Extraction ──▶ Expense Entry
+```
+
+### Data Flow
+```
+User Input ──▶ Frontend Validation ──▶ API Request ──▶ Backend Processing ──▶ Database Storage
+```
+
+## Security Considerations
+- ✅ **Password Security**: bcrypt hashing with salt rounds
+- ✅ **Token Security**: JWT with secret key and expiration
+- ✅ **Route Protection**: Authentication middleware for protected endpoints
+- ✅ **Input Validation**: Frontend and backend validation
+- 📋 **Planned**: Rate limiting, HTTPS enforcement, data encryption
+
+## Scalability Considerations
+- **Database**: MongoDB Atlas for cloud scaling
+- **Backend**: Stateless design for horizontal scaling
+- **Frontend**: Optimized React Native performance
+- **Caching**: Planned for frequently accessed data
+
+## Development Environment
+- **Version Control**: Git with feature branch workflow
+- **Testing**: Automated testing with Jest
+- **Documentation**: Comprehensive docs in `/docs` folder
+- **Code Quality**: ESLint and Prettier for consistency
+
+## Current Status
+- ✅ **Authentication Layer**: Fully implemented and tested
+- 🚧 **Receipt Upload**: UI components ready, backend integration needed
+- 📋 **OCR Integration**: Architecture planned, implementation pending
+- 📋 **Expense Management**: Database schema designed, CRUD operations pending
+- 📋 **Reporting**: Analytics architecture planned
+
+## Technology Stack Summary
+| Layer | Technology | Status |
+|-------|------------|--------|
+| Frontend | React Native + Expo | ✅ Setup Complete |
+| UI Components | NativeBase | ✅ Implemented |
+| State Management | React Context | ✅ Auth Context Working |
+| Backend API | Node.js + Express | ✅ Auth Endpoints Working |
+| Database | MongoDB + Mongoose | ✅ User Model Working |
+| Authentication | JWT + bcrypt | ✅ Fully Implemented |
+| Testing | Jest + Supertest | ✅ Auth Tests Passing |
 
 ## High-Level Flow Diagram
 
