@@ -1,14 +1,27 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, HStack, VStack, Avatar, useColorModeValue, Icon } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
+import { getUserData } from '../services/authService';
 
 // UserInfo component displays user's name and avatar with dynamic greeting
-// Features: time-based greetings, contextual messages, modern design
+// Features: time-based greetings, contextual messages, modern design, real user data
 const UserInfo = () => {
-  // Static mock user data - can be replaced with real user context later
-  const user = {
-    name: 'Jane Doe',
-    avatarUrl: '', // Placeholder, can be replaced with real image
+  const [user, setUser] = useState<{ username: string; role: string } | null>(null);
+
+  // Load user data on component mount
+  useEffect(() => {
+    loadUserData();
+  }, []);
+
+  const loadUserData = async () => {
+    try {
+      const userData = await getUserData();
+      setUser(userData);
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+      // Fallback to default user if data loading fails
+      setUser({ username: 'User', role: 'user' });
+    }
   };
 
   // Get current time and date for dynamic content
@@ -44,10 +57,29 @@ const UserInfo = () => {
       "Your money, your control.",
       "Every expense tracked is progress made.",
       "Building better spending habits!",
+      "Smart spending starts here!",
+      "Take control of your finances!",
+      "Every dollar counts!",
     ];
     // Use day of year to get consistent but varying message
     const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / 86400000);
     return messages[dayOfYear % messages.length];
+  };
+
+  // Format username for display (capitalize first letter)
+  const getDisplayName = () => {
+    if (!user?.username) return 'User';
+    return user.username.charAt(0).toUpperCase() + user.username.slice(1);
+  };
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.username) return 'U';
+    const words = user.username.split(' ');
+    if (words.length > 1) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    return user.username.substring(0, 2).toUpperCase();
   };
 
   // Theme-aware colors with enhanced gradients and modern styling
@@ -84,17 +116,16 @@ const UserInfo = () => {
       
       {/* Main content */}
       <HStack space={3} alignItems="center" position="relative" zIndex={1}>
-        {/* Smaller avatar */}
+        {/* User avatar with initials */}
         <Avatar 
           size="lg" 
-          source={user.avatarUrl ? { uri: user.avatarUrl } : undefined} 
           bg="white"
           _text={{ color: 'blue.500', fontWeight: 'bold', fontSize: 'lg' }}
           borderWidth={2}
           borderColor="white"
           shadow={2}
         >
-          {user.name[0]}
+          {getUserInitials()}
         </Avatar>
         
         {/* Compact greeting content */}
@@ -109,7 +140,7 @@ const UserInfo = () => {
           
           {/* User name with smaller typography */}
           <Text fontSize="xl" fontWeight="bold" color={text} letterSpacing="tight">
-            {user.name}
+            {getDisplayName()}
           </Text>
           
           {/* Current date */}

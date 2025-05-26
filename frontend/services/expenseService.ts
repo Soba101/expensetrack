@@ -31,6 +31,41 @@ export interface ExpenseResponse {
   receipt?: any; // Receipt data if one was created
 }
 
+// Interface for expense summary analytics
+export interface ExpenseSummary {
+  currentMonth: {
+    spent: number;
+    budget: number;
+    lastMonth: number;
+    dailyAverage: number;
+    daysInMonth: number;
+    daysPassed: number;
+    projectedSpending: number;
+  };
+  yearData: {
+    spent: number;
+    target: number;
+  };
+  categories: Array<{
+    name: string;
+    amount: number;
+    color: string;
+  }>;
+}
+
+// Interface for recent transactions
+export interface RecentTransaction {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string;
+  vendor: string;
+  hasReceipt: boolean;
+  status: string;
+  isUnusual: boolean;
+}
+
 // Function to save expense (with optional receipt)
 export const saveExpense = async (expenseData: ExpenseData): Promise<ExpenseResponse> => {
   try {
@@ -156,6 +191,150 @@ export const getExpenses = async (): Promise<any[]> => {
     return data; // Return array of expenses
   } catch (error) {
     console.error('Get expenses error:', error);
+    throw error;
+  }
+};
+
+// Function to get expense summary and analytics
+export const getExpenseSummary = async (): Promise<ExpenseSummary> => {
+  try {
+    const expenses = await getExpenses();
+    
+    // Calculate current month data
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+    
+    // Filter expenses for current month
+    const currentMonthExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+    });
+    
+    // Filter expenses for last month
+    const lastMonthExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getMonth() === lastMonth && expenseDate.getFullYear() === lastMonthYear;
+    });
+    
+    // Filter expenses for current year
+    const currentYearExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getFullYear() === currentYear;
+    });
+    
+    // Calculate totals
+    const currentMonthSpent = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const lastMonthSpent = lastMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const currentYearSpent = currentYearExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    
+    // Calculate days and projections
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const daysPassed = now.getDate();
+    const dailyAverage = daysPassed > 0 ? currentMonthSpent / daysPassed : 0;
+    const projectedSpending = dailyAverage * daysInMonth;
+    
+    // Calculate category breakdown
+    const categoryTotals: { [key: string]: number } = {};
+    currentMonthExpenses.forEach(expense => {
+      const category = expense.category || 'Other';
+      categoryTotals[category] = (categoryTotals[category] || 0) + expense.amount;
+    });
+    
+    // Convert to array and add colors
+    const categoryColors = [
+      'blue.400', 'teal.400', 'orange.400', 'purple.400', 
+      'green.400', 'red.400', 'yellow.400', 'pink.400'
+    ];
+    
+    const categories = Object.entries(categoryTotals)
+      .map(([name, amount], index) => ({
+        name,
+        amount,
+        color: categoryColors[index % categoryColors.length]
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 6); // Top 6 categories
+    
+    // Set a reasonable budget (you might want to make this user-configurable)
+    const budget = Math.max(currentMonthSpent * 1.2, lastMonthSpent * 1.1, 1500);
+    
+    return {
+      currentMonth: {
+        spent: currentMonthSpent,
+        budget: budget,
+        lastMonth: lastMonthSpent,
+        dailyAverage: dailyAverage,
+        daysInMonth: daysInMonth,
+        daysPassed: daysPassed,
+        projectedSpending: projectedSpending
+      },
+      yearData: {
+        spent: currentYearSpent,
+        target: budget * 12 // Simple yearly target
+      },
+      categories: categories
+    };
+  } catch (error) {
+    console.error('Get expense summary error:', error);
+    throw error;
+  }
+};
+
+// Function to get recent transactions formatted for the UI
+export const getRecentTransactions = async (limit: number = 10): Promise<RecentTransaction[]> => {
+  try {
+    const expenses = await getExpenses();
+    
+    // Sort by date (newest first) and limit
+    const recentExpenses = expenses
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, limit);
+    
+    // Transform to UI format
+    return recentExpenses.map(expense => ({
+      id: expense._id,
+      description: expense.description,
+      amount: expense.amount,
+      date: expense.date,
+      category: expense.category || 'Other',
+      vendor: expense.vendor || '',
+      hasReceipt: !!expense.receiptId,
+      status: 'completed', // All saved expenses are completed
+      isUnusual: expense.amount > 100 // Simple heuristic for unusual expenses
+    }));
+  } catch (error) {
+    console.error('Get recent transactions error:', error);
+    throw error;
+  }
+};
+
+// Function to get unique categories from user's expenses
+export const getCategories = async (): Promise<string[]> => {
+  try {
+    const expenses = await getExpenses();
+    const categories = new Set<string>();
+    
+    expenses.forEach(expense => {
+      if (expense.category) {
+        categories.add(expense.category);
+      }
+    });
+    
+    // Add some default categories if user has no expenses yet
+    const defaultCategories = [
+      'Food & Dining', 'Transportation', 'Shopping', 'Entertainment',
+      'Bills & Utilities', 'Healthcare', 'Travel', 'Education',
+      'Business', 'Personal Care', 'Groceries', 'Other'
+    ];
+    
+    defaultCategories.forEach(cat => categories.add(cat));
+    
+    return Array.from(categories).sort();
+  } catch (error) {
+    console.error('Get categories error:', error);
     throw error;
   }
 }; 

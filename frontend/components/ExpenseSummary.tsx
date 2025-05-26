@@ -1,43 +1,17 @@
 import React, { useState } from 'react';
-import { Box, Text, VStack, HStack, useColorModeValue, Progress, Circle, Pressable, Icon } from 'native-base';
+import { Box, Text, VStack, HStack, useColorModeValue, Progress, Circle, Pressable, Icon, Spinner } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
+import { useExpenseData } from '../context/ExpenseDataContext';
 
 // ExpenseSummary component displays spending overview with integrated breakdown
-// Features: Hero card layout, trend indicators, budget progress, category breakdown
+// Features: Hero card layout, trend indicators, budget progress, category breakdown, real data from API
 const ExpenseSummary = () => {
   const [showBreakdown, setShowBreakdown] = useState(false);
+  
+  // Use centralized data context instead of individual API calls
+  const { summaryData, loading, error } = useExpenseData();
 
-  // Mock data with trends and budget info
-  const currentMonth = {
-    spent: 1200.50,
-    budget: 1500.00,
-    lastMonth: 1350.75,
-    dailyAverage: 40.02,
-    daysInMonth: 30,
-    daysPassed: 15,
-    projectedSpending: 1200.60
-  };
-
-  const yearData = {
-    spent: 8500.75,
-    target: 15000.00
-  };
-
-  // Category breakdown data (integrated from ExpenseBreakdown)
-  const categories = [
-    { name: 'Food', amount: 400, color: 'blue.400' },
-    { name: 'Utilities', amount: 200, color: 'teal.400' },
-    { name: 'Transport', amount: 150, color: 'orange.400' },
-    { name: 'Other', amount: 100, color: 'gray.400' },
-  ];
-
-  // Calculate trend and progress
-  const monthlyTrend = ((currentMonth.spent - currentMonth.lastMonth) / currentMonth.lastMonth * 100);
-  const budgetProgress = (currentMonth.spent / currentMonth.budget) * 100;
-  const isOverBudget = budgetProgress > 100;
-  const isOnTrack = currentMonth.projectedSpending <= currentMonth.budget;
-
-  // Apple-style colors with semantic meaning
+  // Apple-style colors with semantic meaning - MOVED TO TOP to fix hooks order
   const cardBg = useColorModeValue('white', 'gray.900');
   const heroCardBg = useColorModeValue('blue.50', 'blue.900');
   const border = useColorModeValue('coolGray.100', 'gray.700');
@@ -47,6 +21,75 @@ const ExpenseSummary = () => {
   const successColor = useColorModeValue('green.500', 'green.400');
   const warningColor = useColorModeValue('orange.500', 'orange.400');
   const dangerColor = useColorModeValue('red.500', 'red.400');
+  // Error state colors
+  const errorBg = useColorModeValue('red.50', 'red.900');
+  const errorBorder = useColorModeValue('red.200', 'red.700');
+  const errorText = useColorModeValue('red.600', 'red.400');
+  // Progress bar background
+  const progressBg = useColorModeValue('gray.200', 'gray.700');
+  // Category toggle background
+  const toggleBg = useColorModeValue('white', 'gray.800');
+  // Smart insight background
+  const insightBg = useColorModeValue('white', 'gray.800');
+
+  // Data loading is now handled by ExpenseDataContext
+
+  // Show loading spinner while data is being fetched
+  if (loading) {
+    return (
+      <Box 
+        p={6} 
+        borderRadius={24} 
+        bg={heroCardBg} 
+        shadow={3}
+        borderWidth={1}
+        borderColor={border}
+        mb={6}
+        alignItems="center"
+        justifyContent="center"
+        minH={200}
+      >
+        <Spinner size="lg" color="blue.500" />
+        <Text mt={4} color={secondaryText}>
+          Loading expense data...
+        </Text>
+      </Box>
+    );
+  }
+
+  // Show error state if data failed to load
+  if (!summaryData) {
+    return (
+      <Box 
+        p={6} 
+        borderRadius={24} 
+        bg={errorBg} 
+        shadow={3}
+        borderWidth={1}
+        borderColor={errorBorder}
+        mb={6}
+        alignItems="center"
+        justifyContent="center"
+        minH={200}
+      >
+        <Icon as={Ionicons} name="alert-circle" size="xl" color="red.500" />
+        <Text mt={4} color={errorText} textAlign="center">
+          Failed to load expense data
+        </Text>
+        <Text color="blue.500" fontWeight="medium">Please check your connection</Text>
+      </Box>
+    );
+  }
+
+  const { currentMonth, yearData, categories } = summaryData;
+
+  // Calculate trend and progress using real data
+  const monthlyTrend = currentMonth.lastMonth > 0 
+    ? ((currentMonth.spent - currentMonth.lastMonth) / currentMonth.lastMonth * 100)
+    : 0;
+  const budgetProgress = (currentMonth.spent / currentMonth.budget) * 100;
+  const isOverBudget = budgetProgress > 100;
+  const isOnTrack = currentMonth.projectedSpending <= currentMonth.budget;
 
   // Determine trend color and icon
   const getTrendColor = () => {
@@ -115,7 +158,7 @@ const ExpenseSummary = () => {
             colorScheme={isOverBudget ? "red" : budgetProgress > 80 ? "orange" : "blue"}
             size="lg"
             borderRadius={8}
-            bg={useColorModeValue('gray.200', 'gray.700')}
+            bg={progressBg}
           />
           <HStack justifyContent="space-between">
             <Text fontSize="sm" color={secondaryText}>
@@ -128,30 +171,32 @@ const ExpenseSummary = () => {
         </VStack>
 
         {/* Category Breakdown Toggle */}
-        <Pressable onPress={() => setShowBreakdown(!showBreakdown)}>
-          <HStack 
-            justifyContent="space-between" 
-            alignItems="center"
-            p={3}
-            borderRadius={12}
-            bg={useColorModeValue('white', 'gray.800')}
-            borderWidth={1}
-            borderColor={border}
-          >
-            <Text fontSize="sm" fontWeight="600" color={primaryText}>
-              Category Breakdown
-            </Text>
-            <Icon 
-              as={Ionicons} 
-              name={showBreakdown ? 'chevron-up' : 'chevron-down'} 
-              size="sm" 
-              color={secondaryText} 
-            />
-          </HStack>
-        </Pressable>
+        {categories.length > 0 && (
+          <Pressable onPress={() => setShowBreakdown(!showBreakdown)}>
+            <HStack 
+              justifyContent="space-between" 
+              alignItems="center"
+              p={3}
+              borderRadius={12}
+              bg={toggleBg}
+              borderWidth={1}
+              borderColor={border}
+            >
+              <Text fontSize="sm" fontWeight="600" color={primaryText}>
+                Category Breakdown ({categories.length} categories)
+              </Text>
+              <Icon 
+                as={Ionicons} 
+                name={showBreakdown ? 'chevron-up' : 'chevron-down'} 
+                size="sm" 
+                color={secondaryText} 
+              />
+            </HStack>
+          </Pressable>
+        )}
 
         {/* Expandable Category Breakdown */}
-        {showBreakdown && (
+        {showBreakdown && categories.length > 0 && (
           <VStack space={2} mt={3}>
             {categories.map((cat, idx) => (
               <HStack key={cat.name} justifyContent="space-between" alignItems="center" space={2}>
@@ -173,7 +218,7 @@ const ExpenseSummary = () => {
         <Box 
           p={3} 
           borderRadius={12} 
-          bg={useColorModeValue('white', 'gray.800')}
+          bg={insightBg}
           borderWidth={1}
           borderColor={border}
           mt={3}
@@ -198,19 +243,21 @@ const ExpenseSummary = () => {
           p={4} 
           borderRadius={16} 
           bg={cardBg} 
+          shadow={2}
           borderWidth={1}
           borderColor={border}
-          shadow={1}
         >
-          <Text fontSize="sm" fontWeight="600" color={secondaryText} mb={1}>
-            This Year
-          </Text>
-          <Text fontSize="xl" fontWeight="700" color={primaryText}>
-            ${yearData.spent.toLocaleString()}
-          </Text>
-          <Text fontSize="xs" color={secondaryText}>
-            of ${yearData.target.toLocaleString()} target
-          </Text>
+          <VStack space={2}>
+            <Text fontSize="sm" fontWeight="600" color={secondaryText}>
+              This Year
+            </Text>
+            <Text fontSize="2xl" fontWeight="700" color={primaryText}>
+              ${yearData.spent.toLocaleString()}
+            </Text>
+            <Text fontSize="xs" color={secondaryText}>
+              of ${yearData.target.toLocaleString()} target
+            </Text>
+          </VStack>
         </Box>
 
         {/* Daily Average */}
@@ -219,19 +266,21 @@ const ExpenseSummary = () => {
           p={4} 
           borderRadius={16} 
           bg={cardBg} 
+          shadow={2}
           borderWidth={1}
           borderColor={border}
-          shadow={1}
         >
-          <Text fontSize="sm" fontWeight="600" color={secondaryText} mb={1}>
-            Daily Avg
-          </Text>
-          <Text fontSize="xl" fontWeight="700" color={primaryText}>
-            ${currentMonth.dailyAverage.toFixed(0)}
-          </Text>
-          <Text fontSize="xs" color={secondaryText}>
-            past {currentMonth.daysPassed} days
-          </Text>
+          <VStack space={2}>
+            <Text fontSize="sm" fontWeight="600" color={secondaryText}>
+              Daily Avg
+            </Text>
+            <Text fontSize="2xl" fontWeight="700" color={primaryText}>
+              ${currentMonth.dailyAverage.toFixed(0)}
+            </Text>
+            <Text fontSize="xs" color={secondaryText}>
+              last {currentMonth.daysPassed} days
+            </Text>
+          </VStack>
         </Box>
       </HStack>
     </VStack>

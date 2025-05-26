@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Box, Text, VStack, HStack, useColorModeValue, Button, Pressable, Icon, Badge, Divider } from 'native-base';
+import { Box, Text, VStack, HStack, useColorModeValue, Button, Pressable, Icon, Badge, Divider, Spinner } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useExpenseData } from '../context/ExpenseDataContext';
 
 // Define the type for the navigation stack
 type RootStackParamList = {
@@ -16,77 +17,32 @@ type RootStackParamList = {
 };
 
 // Enhanced RecentTransactions component with improved visual hierarchy and interactivity
-// Features: Date grouping, status indicators, better icons, swipe actions, smart insights
+// Features: Date grouping, status indicators, better icons, swipe actions, smart insights, real data from API
 const RecentTransactions = () => {
   const [showAll, setShowAll] = useState(false);
-  const [expandedTransaction, setExpandedTransaction] = useState<number | null>(null);
+  const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
+  
+  // Use centralized data context
+  const { recentTransactions: transactions, loading } = useExpenseData();
 
-  // Enhanced mock data with more realistic information
-  const allTransactions = [
-    { 
-      id: 1, 
-      description: 'Groceries', 
-      amount: 54.23, 
-      date: '2024-06-01',
-      category: 'Food',
-      vendor: 'Whole Foods',
-      hasReceipt: true,
-      status: 'completed',
-      isUnusual: false
-    },
-    { 
-      id: 2, 
-      description: 'Coffee', 
-      amount: 3.50, 
-      date: '2024-06-02',
-      category: 'Food',
-      vendor: 'Starbucks',
-      hasReceipt: false,
-      status: 'completed',
-      isUnusual: false
-    },
-    { 
-      id: 3, 
-      description: 'Internet Bill', 
-      amount: 45.00, 
-      date: '2024-06-03',
-      category: 'Utilities',
-      vendor: 'Comcast',
-      hasReceipt: true,
-      status: 'pending',
-      isUnusual: false
-    },
-    { 
-      id: 4, 
-      description: 'Gas Station', 
-      amount: 32.15, 
-      date: '2024-06-04',
-      category: 'Transport',
-      vendor: 'Shell',
-      hasReceipt: true,
-      status: 'completed',
-      isUnusual: false
-    },
-    { 
-      id: 5, 
-      description: 'Expensive Dinner', 
-      amount: 128.90, 
-      date: '2024-06-05',
-      category: 'Food',
-      vendor: 'Fine Dining Restaurant',
-      hasReceipt: true,
-      status: 'completed',
-      isUnusual: true
-    },
-  ];
+  // Use theme-aware colors - MOVED TO TOP to fix hooks order
+  const cardBg = useColorModeValue('white', 'gray.800');
+  const border = useColorModeValue('coolGray.200', 'gray.700');
+  const heading = useColorModeValue('gray.900', 'gray.100');
+  const text = useColorModeValue('gray.800', 'gray.200');
+  const subtext = useColorModeValue('gray.600', 'gray.400');
+  const sectionHeaderBg = useColorModeValue('gray.50', 'gray.700');
+  const transactionItemBg = useColorModeValue('gray.50', 'gray.700');
+
+  // Data loading is now handled by ExpenseDataContext
 
   // Group transactions by date
-  const groupTransactionsByDate = (transactions: typeof allTransactions) => {
+  const groupTransactionsByDate = (transactions: any[]) => {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
     
-    const groups: { [key: string]: typeof allTransactions } = {
+    const groups: { [key: string]: any[] } = {
       'Today': [],
       'Yesterday': [],
       'This Week': []
@@ -109,27 +65,24 @@ const RecentTransactions = () => {
     return groups;
   };
 
-  // Show only first 3 transactions initially
-  const displayedTransactions = showAll ? allTransactions : allTransactions.slice(0, 3);
+  // Show only first 5 transactions initially
+  const displayedTransactions = showAll ? transactions : transactions.slice(0, 5);
   const groupedTransactions = groupTransactionsByDate(displayedTransactions);
-
-  // Use theme-aware colors
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
-  const heading = useColorModeValue('gray.900', 'gray.100');
-  const text = useColorModeValue('gray.800', 'gray.200');
-  const subtext = useColorModeValue('gray.600', 'gray.400');
-  const sectionHeaderBg = useColorModeValue('gray.50', 'gray.700');
 
   // Enhanced icon mapping with category-based colors
   const getTransactionIcon = (description: string, category: string) => {
     const iconMap: { [key: string]: { icon: string; color: string; bg: string } } = {
-      'Food': { icon: 'restaurant', color: '#059669', bg: '#D1FAE5' },
-      'Transport': { icon: 'car', color: '#DC2626', bg: '#FEE2E2' },
-      'Utilities': { icon: 'wifi', color: '#2563EB', bg: '#DBEAFE' },
+      'Food & Dining': { icon: 'restaurant', color: '#059669', bg: '#D1FAE5' },
+      'Transportation': { icon: 'car', color: '#DC2626', bg: '#FEE2E2' },
+      'Bills & Utilities': { icon: 'wifi', color: '#2563EB', bg: '#DBEAFE' },
       'Entertainment': { icon: 'game-controller', color: '#7C3AED', bg: '#EDE9FE' },
       'Shopping': { icon: 'bag', color: '#EA580C', bg: '#FED7AA' },
-      'Health': { icon: 'medical', color: '#0891B2', bg: '#CFFAFE' },
+      'Healthcare': { icon: 'medical', color: '#0891B2', bg: '#CFFAFE' },
+      'Travel': { icon: 'airplane', color: '#7C2D12', bg: '#FEF3C7' },
+      'Education': { icon: 'school', color: '#1D4ED8', bg: '#DBEAFE' },
+      'Business': { icon: 'briefcase', color: '#374151', bg: '#F3F4F6' },
+      'Personal Care': { icon: 'cut', color: '#BE185D', bg: '#FCE7F3' },
+      'Groceries': { icon: 'basket', color: '#059669', bg: '#D1FAE5' },
       'default': { icon: 'card', color: '#6B7280', bg: '#F3F4F6' }
     };
 
@@ -158,8 +111,57 @@ const RecentTransactions = () => {
 
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
+  // Show loading state
+  if (loading) {
+    return (
+      <Box 
+        p={6} 
+        borderRadius={20} 
+        bg={cardBg} 
+        shadow={2}
+        borderWidth={1}
+        borderColor={border}
+        mb={6}
+        alignItems="center"
+        justifyContent="center"
+        minH={200}
+      >
+        <Spinner size="lg" color="blue.500" />
+        <Text mt={4} color={subtext}>
+          Loading recent transactions...
+        </Text>
+      </Box>
+    );
+  }
+
+  // Show empty state if no transactions
+  if (transactions.length === 0) {
+    return (
+      <Box 
+        p={6} 
+        borderRadius={20} 
+        bg={cardBg} 
+        shadow={2}
+        borderWidth={1}
+        borderColor={border}
+        mb={6}
+        alignItems="center"
+        justifyContent="center"
+        minH={200}
+      >
+        <Icon as={Ionicons} name="receipt-outline" size="xl" color={subtext} />
+        <Text mt={4} color={subtext} textAlign="center" fontSize="md">
+          No transactions yet
+        </Text>
+        <Text mt={2} color={subtext} textAlign="center" fontSize="sm">
+          Start by adding your first expense
+        </Text>
+      </Box>
+    );
+  }
+
   // Render individual transaction with enhanced design
-  const renderTransaction = (tx: typeof allTransactions[0]) => {
+  const renderTransaction = (tx: any) => {
     const iconData = getTransactionIcon(tx.description, tx.category);
     const statusData = getStatusIndicator(tx.status);
     const isExpanded = expandedTransaction === tx.id;
@@ -176,7 +178,7 @@ const RecentTransactions = () => {
         <Box
           p={3}
           borderRadius={12}
-          bg={useColorModeValue('gray.50', 'gray.700')}
+          bg={transactionItemBg}
           borderWidth={1}
           borderColor={isExpanded ? 'blue.300' : 'transparent'}
           mb={2}
@@ -201,68 +203,46 @@ const RecentTransactions = () => {
                 {tx.hasReceipt && (
                   <Box
                     position="absolute"
-                    top={-2}
-                    right={-2}
-                    w={3}
-                    h={3}
-                    bg="green.500"
+                    top={-1}
+                    right={-1}
+                    bg="blue.500"
                     borderRadius="full"
-                    borderWidth={1}
-                    borderColor="white"
+                    size={2}
                   />
                 )}
               </Box>
               
-              <VStack flex={1} space={0.5}>
-                <HStack alignItems="center" space={2}>
-                  <Text color={text} fontWeight="bold" fontSize="sm" numberOfLines={1} flex={1}>
+              <VStack flex={1} space={0}>
+                <HStack justifyContent="space-between" alignItems="center">
+                  <Text fontSize="md" fontWeight="600" color={text} flex={1}>
                     {tx.description}
                   </Text>
                   {tx.isUnusual && (
-                    <Icon as={Ionicons} name="alert-circle" size="xs" color="orange.500" />
+                    <Badge colorScheme="orange" variant="subtle" size="sm">
+                      Unusual
+                    </Badge>
                   )}
                 </HStack>
                 
-                <HStack alignItems="center" space={2}>
-                  <Text fontSize="xs" color={subtext}>
-                    {new Date(tx.date).toLocaleDateString('en-US', { 
-                      month: 'short', 
-                      day: 'numeric' 
-                    })}
+                <HStack justifyContent="space-between" alignItems="center" mt={1}>
+                  <Text fontSize="sm" color={subtext}>
+                    {tx.vendor || tx.category}
                   </Text>
-                  
-                  {tx.vendor && (
-                    <>
-                      <Text fontSize="xs" color={subtext}>•</Text>
-                      <Text fontSize="xs" color={subtext} numberOfLines={1} flex={1}>
-                        {tx.vendor}
-                      </Text>
-                    </>
-                  )}
+                  <Text fontSize="sm" color={statusData.color}>
+                    {statusData.text}
+                  </Text>
                 </HStack>
               </VStack>
             </HStack>
-            
-            {/* Amount and status */}
-            <VStack alignItems="flex-end" space={1}>
-              <Text 
-                color={tx.amount > 100 ? 'red.600' : text} 
-                fontWeight="bold" 
-                fontSize="sm"
-              >
+
+            {/* Amount */}
+            <VStack alignItems="flex-end" space={0}>
+              <Text fontSize="lg" fontWeight="700" color={text}>
                 ${tx.amount.toFixed(2)}
               </Text>
-              
-              {tx.status === 'pending' && (
-                <Badge 
-                  colorScheme="orange" 
-                  variant="subtle" 
-                  borderRadius={6}
-                  _text={{ fontSize: 'xs' }}
-                >
-                  Pending
-                </Badge>
-              )}
+              <Text fontSize="xs" color={subtext}>
+                {new Date(tx.date).toLocaleDateString()}
+              </Text>
             </VStack>
           </HStack>
 
@@ -270,35 +250,26 @@ const RecentTransactions = () => {
           {isExpanded && (
             <VStack space={2} mt={3} pt={3} borderTopWidth={1} borderTopColor={border}>
               <HStack justifyContent="space-between">
-                <Text fontSize="xs" color={subtext}>Category:</Text>
-                <Badge colorScheme="blue" variant="subtle" _text={{ fontSize: 'xs' }}>
-                  {tx.category}
-                </Badge>
+                <Text fontSize="sm" color={subtext}>Category:</Text>
+                <Text fontSize="sm" color={text} fontWeight="medium">{tx.category}</Text>
               </HStack>
-              
-              <HStack justifyContent="space-between">
-                <Text fontSize="xs" color={subtext}>Receipt:</Text>
-                <HStack alignItems="center" space={1}>
-                  <Icon 
-                    as={Ionicons} 
-                    name={tx.hasReceipt ? 'checkmark-circle' : 'close-circle'} 
-                    size="xs" 
-                    color={tx.hasReceipt ? 'green.500' : 'red.500'} 
-                  />
-                  <Text fontSize="xs" color={tx.hasReceipt ? 'green.500' : 'red.500'}>
-                    {tx.hasReceipt ? 'Attached' : 'Missing'}
-                  </Text>
-                </HStack>
-              </HStack>
-
-              {tx.isUnusual && (
-                <HStack alignItems="center" space={2}>
-                  <Icon as={Ionicons} name="alert-circle" size="xs" color="orange.500" />
-                  <Text fontSize="xs" color="orange.500">
-                    Unusually high amount for this category
-                  </Text>
+              {tx.vendor && (
+                <HStack justifyContent="space-between">
+                  <Text fontSize="sm" color={subtext}>Vendor:</Text>
+                  <Text fontSize="sm" color={text} fontWeight="medium">{tx.vendor}</Text>
                 </HStack>
               )}
+              <HStack justifyContent="space-between">
+                <Text fontSize="sm" color={subtext}>Date:</Text>
+                <Text fontSize="sm" color={text} fontWeight="medium">
+                  {new Date(tx.date).toLocaleDateString('en-US', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  })}
+                </Text>
+              </HStack>
             </VStack>
           )}
         </Box>
@@ -338,7 +309,7 @@ const RecentTransactions = () => {
           <Text fontSize="lg" fontWeight="bold" color={heading}>
             Recent Transactions
           </Text>
-          {allTransactions.some(tx => tx.isUnusual) && (
+          {transactions.some(tx => tx.isUnusual) && (
             <HStack alignItems="center" space={1}>
               <Icon as={Ionicons} name="alert-circle" size="xs" color="orange.500" />
               <Text fontSize="xs" color="orange.500">
@@ -348,11 +319,11 @@ const RecentTransactions = () => {
           )}
         </VStack>
         
-        {allTransactions.length > 3 && (
+        {transactions.length > 5 && (
           <Pressable onPress={() => setShowAll(!showAll)}>
             <HStack alignItems="center" space={1}>
               <Text fontSize="sm" color="blue.500" fontWeight="medium">
-                {showAll ? 'Show Less' : `+${allTransactions.length - 3} more`}
+                {showAll ? 'Show Less' : `+${transactions.length - 5} more`}
               </Text>
               <Icon 
                 as={Ionicons} 

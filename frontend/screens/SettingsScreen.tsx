@@ -1,12 +1,15 @@
 import React from 'react';
-import { ScrollView, Box, VStack, HStack, Text, useColorModeValue, Pressable, Icon, Switch, Divider, useColorMode } from 'native-base';
+import { ScrollView, Box, VStack, HStack, Text, useColorModeValue, Pressable, Icon, Switch, Divider, useColorMode, useToast } from 'native-base';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../context/AuthContext';
 
 // SettingsScreen: App settings and preferences with Apple-style design
-// Features: Clean sections, proper spacing, intuitive organization, functional dark mode toggle
+// Features: Clean sections, proper spacing, intuitive organization, functional dark mode toggle, logout functionality
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
+  const { logout } = useAuth();
+  const toast = useToast();
   
   // Color mode functionality for dark/light theme toggle
   const { colorMode, toggleColorMode } = useColorMode();
@@ -21,15 +24,36 @@ const SettingsScreen: React.FC = () => {
   const primaryText = useColorModeValue('gray.900', 'gray.100');
   const secondaryText = useColorModeValue('gray.600', 'gray.400');
   const accentColor = useColorModeValue('blue.500', 'blue.400');
+  const dangerColor = useColorModeValue('red.500', 'red.400');
 
-  // Settings item component
+  // Handle logout functionality with error handling and user feedback
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.show({
+        title: 'Logged Out',
+        description: 'You have been successfully logged out.',
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.show({
+        title: 'Logout Error',
+        description: 'There was an issue logging out. Please try again.',
+        duration: 3000,
+      });
+    }
+  };
+
+  // Settings item component with support for destructive actions
   const SettingsItem = ({ 
     icon, 
     title, 
     subtitle, 
     onPress, 
     showArrow = true,
-    rightElement 
+    rightElement,
+    isDestructive = false
   }: {
     icon: string;
     title: string;
@@ -37,6 +61,7 @@ const SettingsScreen: React.FC = () => {
     onPress?: () => void;
     showArrow?: boolean;
     rightElement?: React.ReactNode;
+    isDestructive?: boolean;
   }) => (
     <Pressable onPress={onPress} disabled={!onPress}>
       <HStack 
@@ -55,11 +80,11 @@ const SettingsScreen: React.FC = () => {
               as={Ionicons}
               name={icon as any}
               size="sm"
-              color={accentColor}
+              color={isDestructive ? dangerColor : accentColor}
             />
           </Box>
           <VStack flex={1}>
-            <Text fontSize="md" fontWeight="medium" color={primaryText}>
+            <Text fontSize="md" fontWeight="medium" color={isDestructive ? dangerColor : primaryText}>
               {title}
             </Text>
             {subtitle && (
@@ -131,6 +156,14 @@ const SettingsScreen: React.FC = () => {
               console.log('Navigate to payment methods');
             }}
           />
+          <Divider />
+                     <SettingsItem
+             icon="log-out"
+             title="Logout"
+             subtitle="Sign out of your account"
+             onPress={handleLogout}
+             isDestructive={true}
+           />
         </SettingsSection>
 
         {/* Preferences Section */}

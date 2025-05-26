@@ -17,6 +17,7 @@ import SettingsScreen from './screens/SettingsScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ExpenseDataProvider } from './context/ExpenseDataContext';
 
 // Fix for BackHandler.removeEventListener deprecation in React Native 0.60+
 // This polyfill ensures compatibility with older navigation libraries
@@ -98,7 +99,13 @@ const AppContent = () => {
   return (
     <NavigationContainer>
       <StatusBar style="auto" />
-      {isAuthenticated ? <AuthenticatedStack /> : <UnauthenticatedStack />}
+      {isAuthenticated ? (
+        <ExpenseDataProvider>
+          <AuthenticatedStack />
+        </ExpenseDataProvider>
+      ) : (
+        <UnauthenticatedStack />
+      )}
     </NavigationContainer>
   );
 };
