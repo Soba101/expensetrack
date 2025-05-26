@@ -10,20 +10,8 @@ const UserInfo = () => {
     avatarUrl: '', // Placeholder, can be replaced with real image
   };
 
-  // Use theme-aware colors and a subtle gradient for depth
-  const cardBg = useColorModeValue({
-    linearGradient: {
-      colors: ['blue.50', 'white'],
-      start: [0, 0],
-      end: [1, 1],
-    },
-  }, {
-    linearGradient: {
-      colors: ['blue.900', 'gray.800'],
-      start: [0, 0],
-      end: [1, 1],
-    },
-  });
+  // Use theme-aware colors with solid backgrounds (temporarily removing gradient)
+  const cardBg = useColorModeValue('blue.50', 'gray.800');
   const border = useColorModeValue('coolGray.200', 'gray.700');
   const text = useColorModeValue('gray.900', 'gray.100');
   const greeting = useColorModeValue('gray.700', 'gray.300');

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'YOUR_BACKEND_API_URL'; // TODO: Replace with your actual backend API URL
+const API_BASE_URL = 'http://172.20.10.7:3001'; // Backend API URL (using local network IP for simulator)
 const TOKEN_KEY = 'userToken';
 const USER_KEY = 'userData';
 
