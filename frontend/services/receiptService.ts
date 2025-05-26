@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system';
 import { getAuthToken } from './authService';
 
-const API_BASE_URL = 'http://172.20.10.7:3001'; // Same as authService
+const API_BASE_URL = 'http://192.168.18.70:3001'; // Same as authService
 
 // Interface for receipt upload data
 export interface ReceiptUploadData {

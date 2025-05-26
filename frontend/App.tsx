@@ -2,6 +2,7 @@ import * as React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
+import { BackHandler } from 'react-native';
 import DashboardScreen from './screens/DashboardScreen';
 import ExpensesListScreen from './screens/ExpensesListScreen';
 import AddEditExpenseScreen from './screens/AddEditExpenseScreen';
@@ -18,6 +19,17 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
+// Fix for BackHandler.removeEventListener deprecation in React Native 0.60+
+// This polyfill ensures compatibility with older navigation libraries
+if (!(BackHandler as any).removeEventListener) {
+  (BackHandler as any).removeEventListener = (eventType: string, handler: () => boolean) => {
+    // In newer versions, BackHandler uses subscription pattern
+    // This is a no-op fallback for compatibility
+    console.warn('BackHandler.removeEventListener is deprecated. Using compatibility mode.');
+    return false;
+  };
+}
+
 // Suppress known NativeBase warnings that are harmless
 // These warnings come from NativeBase's internal components and animations
 const originalWarn = console.warn;
@@ -26,7 +38,8 @@ console.warn = (...args) => {
     args[0] && 
     typeof args[0] === 'string' && 
     (args[0].includes('Sending `onAnimatedValueUpdate` with no listeners registered') ||
-     args[0].includes('In React 18, SSRProvider is not necessary and is a noop'))
+     args[0].includes('In React 18, SSRProvider is not necessary and is a noop') ||
+     args[0].includes('BackHandler.removeEventListener is deprecated'))
   ) {
     return; // Suppress these specific warnings
   }

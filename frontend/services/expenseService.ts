@@ -1,7 +1,7 @@
 import { getAuthToken } from './authService';
 import * as receiptService from './receiptService';
 
-const API_BASE_URL = 'http://172.20.10.7:3001'; // Same as other services
+const API_BASE_URL = 'http://192.168.18.70:3001'; // Updated to current IP address
 
 // Interface for expense data
 export interface ExpenseData {
@@ -111,26 +111,48 @@ export const saveExpense = async (expenseData: ExpenseData): Promise<ExpenseResp
 // Function to get all expenses for the current user
 export const getExpenses = async (): Promise<any[]> => {
   try {
+    console.log('getExpenses: Starting...');
+    
     // Get authentication token
+    console.log('getExpenses: Getting auth token...');
     const token = await getAuthToken();
+    console.log('getExpenses: Token received:', token ? 'Yes' : 'No');
+    
     if (!token) {
       throw new Error('No authentication token found. Please log in again.');
     }
 
     // Fetch expenses from backend
-    const response = await fetch(`${API_BASE_URL}/api/expenses/`, {
+    const url = `${API_BASE_URL}/api/expenses/`;
+    console.log('getExpenses: Fetching from URL:', url);
+    console.log('getExpenses: Using token:', token.substring(0, 20) + '...');
+    
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
+
+    console.log('getExpenses: Response received, status:', response.status);
+    console.log('getExpenses: Response ok:', response.ok);
 
     const data = await response.json();
+    console.log('getExpenses: Data parsed, type:', typeof data, 'length:', Array.isArray(data) ? data.length : 'not array');
 
     if (!response.ok) {
+      console.log('getExpenses: Response not ok, data:', data);
       throw new Error(data.message || 'Failed to fetch expenses');
     }
 
+    console.log('getExpenses: Success, returning data');
     return data; // Return array of expenses
   } catch (error) {
     console.error('Get expenses error:', error);
