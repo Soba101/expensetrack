@@ -26,6 +26,15 @@
 - **vendor**: String, optional
 - **processed**: Boolean, default: false
 - **extractedData**: Object, optional (OCR results)
+  - **amount**: Number, optional (extracted amount)
+  - **date**: String, optional (extracted date in YYYY-MM-DD format)
+  - **vendor**: String, optional (extracted vendor name)
+  - **category**: String, optional (suggested category)
+  - **confidence**: Object (confidence scores 0-1)
+    - **amount**: Number (confidence in amount extraction)
+    - **date**: Number (confidence in date extraction)
+    - **vendor**: Number (confidence in vendor extraction)
+  - **rawText**: String (full OCR text)
 - **timestamps**: createdAt, updatedAt
 
 ## Category Model ✅ **IMPLEMENTED**
@@ -102,7 +111,7 @@
 |-------|--------|------------|
 | User Model | ✅ Complete | 100% |
 | Expense Model | ✅ Complete | 95% |
-| Receipt Model | ✅ Complete | 90% |
+| Receipt Model | ✅ Complete | 100% |
 | Category Model | ✅ Complete | 90% |
 | Analytics Model | 📋 Planned | 20% |
 | Indexes | ✅ Complete | 95% |
@@ -147,10 +156,21 @@
   "date": "2024-01-15T12:30:00.000Z",
   "amount": 25.99,
   "vendor": "Local Restaurant",
-  "processed": false,
-  "extractedData": null,
+  "processed": true,
+  "extractedData": {
+    "amount": 25.99,
+    "date": "2024-01-15",
+    "vendor": "Local Restaurant",
+    "category": "Food & Dining",
+    "confidence": {
+      "amount": 0.95,
+      "date": 0.88,
+      "vendor": 0.92
+    },
+    "rawText": "Local Restaurant\n123 Main St\nDate: 01/15/2024\nTotal: $25.99\nThank you!"
+  },
   "createdAt": "2024-01-15T12:32:00.000Z",
-  "updatedAt": "2024-01-15T12:32:00.000Z"
+  "updatedAt": "2024-01-15T12:35:00.000Z"
 }
 ```
 

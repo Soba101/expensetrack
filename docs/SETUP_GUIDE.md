@@ -25,18 +25,36 @@ Create a `.env` file in `backend/`:
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 PORT=5000
+GOOGLE_CLOUD_PROJECT_ID=your_google_cloud_project_id
+GOOGLE_CLOUD_KEY_FILE=path/to/your/service-account-key.json
 ```
 
-### 4. Start MongoDB
+### 4. **NEW!** Google Cloud Vision Setup (for OCR)
+1. **Create Google Cloud Project**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create a new project or select existing one
+   - Enable the Vision API
+
+2. **Create Service Account**:
+   - Go to IAM & Admin > Service Accounts
+   - Create a new service account
+   - Download the JSON key file
+   - Place it in your backend directory
+
+3. **Set Environment Variables**:
+   - Update `GOOGLE_CLOUD_PROJECT_ID` with your project ID
+   - Update `GOOGLE_CLOUD_KEY_FILE` with path to your JSON key file
+
+### 5. Start MongoDB
 - If using local MongoDB, ensure it is running.
 - If using Atlas, ensure your connection string is correct.
 
-### 5. Run the Server
+### 6. Run the Server
 ```sh
 node index.js
 ```
 
-### 6. Run Tests
+### 7. Run Tests
 ```sh
 npm test
 ```
@@ -63,7 +81,7 @@ npx expo start
 - Press 'i' for iOS simulator
 - Press 'a' for Android emulator
 
-## ✅ Testing the Complete Application (85% Complete!)
+## ✅ Testing the Complete Application (90% Complete!)
 
 The ExpenseTrack app is now a comprehensive, production-ready application! You can test:
 
@@ -86,11 +104,13 @@ The ExpenseTrack app is now a comprehensive, production-ready application! You c
 - **SmartInsights**: AI-powered spending analysis with personalized recommendations
 - **RecentTransactions**: Enhanced transaction list with date grouping and expandable details
 
-### 3. **Receipt Processing** ✅
+### 3. **Receipt Processing & OCR** ✅ **NEW!**
 - **Image Capture**: Use "Scan Receipt" to capture or select images
-- **Image Upload**: Automatic base64 conversion and backend processing
-- **Form Integration**: Seamless navigation to expense form with pre-filled data
-- **Error Handling**: Comprehensive error handling with user feedback
+- **OCR Processing**: Google Cloud Vision integration for text extraction
+- **Smart Data Extraction**: Automatic extraction of amount, vendor, date, and category
+- **Comprehensive Date Parsing**: Handles multiple formats (DD/MM/YY, DD/MM/YYYY, YYYY-MM-DD, etc.)
+- **Form Pre-fill**: Intelligent population of expense form fields
+- **Error Handling**: Robust OCR processing with fallback mechanisms
 
 ### 4. **Expense Management** ✅ **NEW! Redesigned**
 - **Add/Edit Expense Screen**: 
@@ -195,7 +215,7 @@ The ExpenseTrack app is now a comprehensive, production-ready application! You c
 
 ## Current Status Summary
 
-**Overall Application Completion: 85%** ⬆️
+**Overall Application Completion: 90%** ⬆️
 
 | Feature Category | Status | What You Can Test |
 |-----------------|--------|-------------------|

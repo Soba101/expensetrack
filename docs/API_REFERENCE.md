@@ -72,11 +72,33 @@
 - **Headers:** `Authorization: Bearer <token>`
 - **Response:** `200 OK` with receipt object or `404 Not Found`
 
-### Process Receipt (OCR)
+### Process Receipt (OCR) ✅ **IMPLEMENTED**
 - **POST** `/api/receipts/:id/process`
 - **Headers:** `Authorization: Bearer <token>`
 - **Response:** `200 OK` with extracted data or error message
-- **Status:** 🚧 In Progress
+- **Response Format:**
+```json
+{
+  "success": true,
+  "data": {
+    "amount": number | null,
+    "date": "YYYY-MM-DD" | null,
+    "vendor": string | null,
+    "category": string,
+    "confidence": {
+      "amount": number (0-1),
+      "date": number (0-1),
+      "vendor": number (0-1)
+    },
+    "rawText": string
+  }
+}
+```
+
+### Test OCR Service
+- **GET** `/api/receipts/test/ocr`
+- **Headers:** `Authorization: Bearer <token>`
+- **Response:** `200 OK` with OCR service status
 
 ---
 
@@ -165,15 +187,15 @@
 
 ## API Status Summary
 
-**Overall API Completion: 85%** ⬆️
+**Overall API Completion: 90%** ⬆️
 
 | Endpoint Category | Status | Completion |
 |------------------|--------|------------|
 | Authentication | ✅ Complete | 100% |
 | Expenses | ✅ Complete | 95% |
-| Receipts | ✅ Complete | 90% |
+| Receipts | ✅ Complete | 100% |
+| OCR Processing | ✅ Complete | 95% |
 | Categories | ✅ Complete | 90% |
-| OCR Processing | 🚧 In Progress | 30% |
 | Analytics | 📋 Planned | 20% |
 | Data Export | 📋 Planned | 0% |
 
