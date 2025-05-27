@@ -200,23 +200,23 @@ export const getExpenseSummary = async (): Promise<ExpenseSummary> => {
   try {
     const expenses = await getExpenses();
     
-    // Calculate current month data
+    // Use rolling 30-day window instead of strict calendar month
+    // This ensures users see their expenses immediately after saving
     const now = new Date();
-    const currentMonth = now.getMonth();
+    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    const sixtyDaysAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
     const currentYear = now.getFullYear();
-    const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
     
-    // Filter expenses for current month
-    const currentMonthExpenses = expenses.filter(expense => {
+    // Filter expenses for last 30 days (recent spending)
+    const recentExpenses = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
-      return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+      return expenseDate >= thirtyDaysAgo;
     });
     
-    // Filter expenses for last month
-    const lastMonthExpenses = expenses.filter(expense => {
+    // Filter expenses for previous 30 days (30-60 days ago)
+    const previousPeriodExpenses = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
-      return expenseDate.getMonth() === lastMonth && expenseDate.getFullYear() === lastMonthYear;
+      return expenseDate >= sixtyDaysAgo && expenseDate < thirtyDaysAgo;
     });
     
     // Filter expenses for current year
@@ -226,19 +226,18 @@ export const getExpenseSummary = async (): Promise<ExpenseSummary> => {
     });
     
     // Calculate totals
-    const currentMonthSpent = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const lastMonthSpent = lastMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const recentSpent = recentExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const previousPeriodSpent = previousPeriodExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     const currentYearSpent = currentYearExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     
-    // Calculate days and projections
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const daysPassed = now.getDate();
-    const dailyAverage = daysPassed > 0 ? currentMonthSpent / daysPassed : 0;
-    const projectedSpending = dailyAverage * daysInMonth;
+    // Calculate daily average based on actual days with expenses
+    const daysWithExpenses = recentExpenses.length > 0 ? 30 : 1; // Avoid division by zero
+    const dailyAverage = recentSpent / daysWithExpenses;
+    const projectedSpending = dailyAverage * 30; // Project for 30 days
     
     // Calculate category breakdown
     const categoryTotals: { [key: string]: number } = {};
-    currentMonthExpenses.forEach(expense => {
+    recentExpenses.forEach(expense => {
       const category = expense.category || 'Other';
       categoryTotals[category] = (categoryTotals[category] || 0) + expense.amount;
     });
@@ -259,16 +258,16 @@ export const getExpenseSummary = async (): Promise<ExpenseSummary> => {
       .slice(0, 6); // Top 6 categories
     
     // Set a reasonable budget (you might want to make this user-configurable)
-    const budget = Math.max(currentMonthSpent * 1.2, lastMonthSpent * 1.1, 1500);
+    const budget = Math.max(recentSpent * 1.2, previousPeriodSpent * 1.1, 1500);
     
     return {
       currentMonth: {
-        spent: currentMonthSpent,
+        spent: recentSpent,
         budget: budget,
-        lastMonth: lastMonthSpent,
+        lastMonth: previousPeriodSpent,
         dailyAverage: dailyAverage,
-        daysInMonth: daysInMonth,
-        daysPassed: daysPassed,
+        daysInMonth: 30, // Using 30 days for rolling window
+        daysPassed: 30, // Using 30 days for rolling window
         projectedSpending: projectedSpending
       },
       yearData: {

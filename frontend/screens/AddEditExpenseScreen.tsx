@@ -12,12 +12,14 @@ import {
   Icon,
   Pressable,
   Select,
-  CheckIcon
+  CheckIcon,
+  Spinner
 } from 'native-base';
 import { TextInput, StyleSheet, Dimensions, FlatList } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as expenseService from '../services/expenseService';
+import { processReceiptWithOCR, OCRExtractedData } from '../services/receiptService';
 
 const { width } = Dimensions.get('window');
 
@@ -75,6 +77,10 @@ const AddEditExpenseScreen: React.FC = () => {
   const [vendor, setVendor] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [hasShownToast, setHasShownToast] = useState(false);
+  
+  // OCR state
+  const [isProcessingOCR, setIsProcessingOCR] = useState(false);
+  const [ocrCompleted, setOcrCompleted] = useState(false);
 
   // Common categories for dropdown
   const categories = [
@@ -105,19 +111,17 @@ const AddEditExpenseScreen: React.FC = () => {
     }
   };
 
-  // Initialize form with receipt data
+  // Initialize form with receipt data and start automatic OCR
   useEffect(() => {
     if (receiptData && receiptDataId) {
       setAmount(receiptData.amount.toString());
       setDescription(receiptData.description);
       setDate(formatDateForInput(receiptData.date));
       
-      if (isFromUpload && !hasShownToast) {
-        toast.show({
-          title: 'Receipt Processed',
-          description: 'Please review the extracted details below.',
-          duration: 3000,
-        });
+      // Start automatic OCR processing for new receipts
+      if (isFromUpload && receiptData._id && !hasShownToast) {
+        console.log('🤖 Starting automatic OCR processing for receipt:', receiptData._id);
+        startAutomaticOCR(receiptData._id);
         setHasShownToast(true);
       }
     }
@@ -129,6 +133,69 @@ const AddEditExpenseScreen: React.FC = () => {
       setDate(formatDateForInput(new Date().toISOString()));
     }
   }, [receiptDataId, date]);
+
+  // Automatic OCR processing function
+  const startAutomaticOCR = async (receiptId: string) => {
+    setIsProcessingOCR(true);
+    
+    try {
+      console.log('🤖 Starting automatic OCR processing...');
+      
+      // Show processing toast
+      toast.show({
+        title: '🤖 Processing Receipt',
+        description: 'Extracting data automatically...',
+        duration: 2000,
+      });
+
+      // Process receipt with OCR
+      const result = await processReceiptWithOCR(receiptId);
+      const extractedData = result.extractedData;
+      
+      console.log('✅ OCR processing complete:', extractedData);
+      
+      // Auto-fill form with extracted data
+      if (extractedData.amount && extractedData.amount > 0) {
+        setAmount(extractedData.amount.toString());
+      }
+      
+      if (extractedData.vendor) {
+        setDescription(extractedData.vendor);
+        setVendor(extractedData.vendor);
+      }
+      
+      if (extractedData.date) {
+        setDate(formatDateForInput(extractedData.date));
+      }
+      
+      if (extractedData.category) {
+        setCategory(extractedData.category);
+      }
+      
+      // Mark as completed
+      setOcrCompleted(true);
+      
+      // Show success message
+      toast.show({
+        title: '✨ Data Extracted!',
+        description: 'Form has been pre-filled. Review and adjust as needed.',
+        duration: 3000,
+      });
+
+    } catch (error) {
+      console.error('❌ Automatic OCR failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'OCR processing failed';
+      
+      // Show error toast but don't block user
+      toast.show({
+        title: '⚠️ Auto-extraction Failed',
+        description: 'Please fill the form manually.',
+        duration: 4000,
+      });
+    } finally {
+      setIsProcessingOCR(false);
+    }
+  };
 
   // Handle form submission
   const handleSave = async () => {
@@ -251,62 +318,106 @@ const AddEditExpenseScreen: React.FC = () => {
 
       case 'form':
         return (
-          <VStack space={0}>
-            <FormInput
-              label="Amount"
-              value={amount}
-              onChangeText={setAmount}
-              placeholder="0.00"
-              keyboardType="decimal-pad"
-              required={true}
-            />
+          <Box position="relative">
+            <VStack space={0}>
+              <FormInput
+                label="Amount"
+                value={amount}
+                onChangeText={setAmount}
+                placeholder="0.00"
+                keyboardType="decimal-pad"
+                required={true}
+              />
 
-            <FormInput
-              label="Description"
-              value={description}
-              onChangeText={setDescription}
-              placeholder="What was this expense for?"
-              required={true}
-            />
+              <FormInput
+                label="Description"
+                value={description}
+                onChangeText={setDescription}
+                placeholder="What was this expense for?"
+                required={true}
+              />
 
-            <FormInput
-              label="Date"
-              value={date}
-              onChangeText={setDate}
-              placeholder="YYYY-MM-DD"
-            />
+              <FormInput
+                label="Date"
+                value={date}
+                onChangeText={setDate}
+                placeholder="YYYY-MM-DD"
+              />
 
-            <FormInput
-              label="Vendor"
-              value={vendor}
-              onChangeText={setVendor}
-              placeholder="Where did you make this purchase?"
-            />
+              <FormInput
+                label="Vendor"
+                value={vendor}
+                onChangeText={setVendor}
+                placeholder="Where did you make this purchase?"
+              />
 
-            {/* Category Dropdown */}
-            <VStack space={2} mb={5}>
-              <Text fontSize="sm" fontWeight="600" color={text}>
-                Category
-              </Text>
-              <Select
-                selectedValue={category}
-                onValueChange={(value: string) => setCategory(value || '')}
-                placeholder="Select a category"
-                borderRadius={12}
-                borderColor={border}
-                bg={inputBg}
-                fontSize="md"
-                _selectedItem={{
-                  bg: 'blue.100',
-                  endIcon: <CheckIcon size="xs" />,
-                }}
-              >
-                {categories.map(cat => (
-                  <Select.Item key={cat} label={cat} value={cat} />
-                ))}
-              </Select>
+              {/* Category Dropdown */}
+              <VStack space={2} mb={5}>
+                <Text fontSize="sm" fontWeight="600" color={text}>
+                  Category
+                </Text>
+                <Select
+                  selectedValue={category}
+                  onValueChange={(value: string) => setCategory(value || '')}
+                  placeholder="Select a category"
+                  borderRadius={12}
+                  borderColor={border}
+                  bg={inputBg}
+                  fontSize="md"
+                  _selectedItem={{
+                    bg: 'blue.100',
+                    endIcon: <CheckIcon size="xs" />,
+                  }}
+                >
+                  {categories.map(cat => (
+                    <Select.Item key={cat} label={cat} value={cat} />
+                  ))}
+                </Select>
+                </VStack>
             </VStack>
-          </VStack>
+
+            {/* OCR Processing Overlay */}
+            {isProcessingOCR && (
+              <Box
+                position="absolute"
+                top={0}
+                left={0}
+                right={0}
+                bottom={0}
+                bg="rgba(255, 255, 255, 0.95)"
+                borderRadius={12}
+                justifyContent="center"
+                alignItems="center"
+                zIndex={10}
+              >
+                <VStack space={4} alignItems="center">
+                  <Box
+                    bg="blue.50"
+                    p={6}
+                    borderRadius={20}
+                    borderWidth={1}
+                    borderColor="blue.200"
+                  >
+                    <VStack space={3} alignItems="center">
+                      <Text fontSize="3xl">🤖</Text>
+                      <Text fontSize="lg" fontWeight="bold" color="blue.700">
+                        Extracting Data
+                      </Text>
+                      <Text fontSize="sm" color="blue.600" textAlign="center">
+                        AI is reading your receipt and filling the form automatically...
+                      </Text>
+                      <HStack space={2} alignItems="center" mt={2}>
+                        <Spinner size="sm" color="blue.500" />
+                        <Text fontSize="sm" color="blue.600">
+                          This takes just a few seconds
+                        </Text>
+                      </HStack>
+                    </VStack>
+                  </Box>
+                </VStack>
+              </Box>
+            )}
+          </Box>
         );
 
       case 'buttons':
@@ -380,9 +491,25 @@ const AddEditExpenseScreen: React.FC = () => {
           </Pressable>
           
           {receiptData && (
-            <HStack alignItems="center" space={1}>
+            <HStack alignItems="center" space={2}>
               <Icon as={Ionicons} name="camera" size="sm" color="green.500" />
               <Text fontSize="sm" color="green.500" fontWeight="500">Receipt</Text>
+              
+              {/* OCR Processing Indicator */}
+              {isProcessingOCR && (
+                <HStack alignItems="center" space={1}>
+                  <Icon as={Ionicons} name="sync" size="xs" color="blue.500" />
+                  <Text fontSize="xs" color="blue.500" fontWeight="500">Processing...</Text>
+                </HStack>
+              )}
+              
+              {/* OCR Completed Indicator */}
+              {ocrCompleted && (
+                <HStack alignItems="center" space={1}>
+                  <Icon as={Ionicons} name="checkmark-circle" size="sm" color="green.500" />
+                  <Text fontSize="xs" color="green.500" fontWeight="500">Auto-filled</Text>
+                </HStack>
+              )}
             </HStack>
           )}
         </HStack>

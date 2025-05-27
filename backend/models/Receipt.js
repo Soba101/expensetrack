@@ -19,11 +19,23 @@ const ReceiptSchema = new mongoose.Schema({
   },
   amount: {
     type: Number,
-    required: true,
+    required: false, // Made optional since OCR can extract this
   },
   description: {
     type: String,
     default: '',
+  },
+  vendor: {
+    type: String,
+    default: '',
+  },
+  processed: {
+    type: Boolean,
+    default: false,
+  },
+  extractedData: {
+    type: Object,
+    default: null,
   },
 }, { timestamps: true });
 

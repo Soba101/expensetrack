@@ -21,9 +21,33 @@ export interface ReceiptResponse {
     date: string;
     amount: number;
     description: string;
+    vendor?: string;
+    processed?: boolean;
+    extractedData?: OCRExtractedData;
     createdAt: string;
     updatedAt: string;
   };
+}
+
+// Interface for OCR extracted data
+export interface OCRExtractedData {
+  amount: number | null;
+  date: string | null;
+  vendor: string | null;
+  category: string | null;
+  confidence: {
+    amount: number;
+    date: number;
+    vendor: number;
+  };
+  rawText: string;
+}
+
+// Interface for OCR processing response
+export interface OCRProcessingResponse {
+  message: string;
+  receipt: ReceiptResponse['receipt'];
+  extractedData: OCRExtractedData;
 }
 
 // Function to convert image URI to base64 string
@@ -105,24 +129,87 @@ export const getReceipts = async (): Promise<any[]> => {
   }
 };
 
-// Function to process uploaded receipt (placeholder for future OCR integration)
+// Function to process receipt with OCR
+export const processReceiptWithOCR = async (receiptId: string): Promise<OCRProcessingResponse> => {
+  try {
+    console.log('🔍 Processing receipt with OCR:', receiptId);
+    
+    // Get authentication token
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    // Call OCR processing endpoint
+    const response = await fetch(`${API_BASE_URL}/api/receipts/${receiptId}/process`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'OCR processing failed');
+    }
+
+    console.log('✅ OCR processing complete:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ OCR processing error:', error);
+    throw error;
+  }
+};
+
+// Function to get a specific receipt by ID
+export const getReceiptById = async (receiptId: string): Promise<ReceiptResponse['receipt']> => {
+  try {
+    // Get authentication token
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    // Fetch specific receipt from backend
+    const response = await fetch(`${API_BASE_URL}/api/receipts/${receiptId}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to fetch receipt');
+    }
+
+    return data; // Return receipt data
+  } catch (error) {
+    console.error('Get receipt error:', error);
+    throw error;
+  }
+};
+
+// Function to process uploaded receipt (legacy function - kept for compatibility)
 export const processReceiptImage = async (imageUri: string) => {
   try {
     // Convert image to base64
     const base64Image = await convertImageToBase64(imageUri);
     
-    // For now, return mock extracted data
-    // In the future, this will call OCR service
-    const mockExtractedData = {
+    // Return image data for upload
+    const extractedData = {
       date: new Date().toISOString(),
-      amount: 0, // User will need to enter manually for now
+      amount: 0, // Will be extracted by OCR after upload
       description: 'Receipt uploaded', // Default description
-      vendor: '', // Will be extracted by OCR later
+      vendor: '', // Will be extracted by OCR
     };
 
     return {
       image: base64Image,
-      extractedData: mockExtractedData,
+      extractedData: extractedData,
     };
   } catch (error) {
     console.error('Error processing receipt image:', error);
