@@ -203,10 +203,10 @@ const ExpensesListScreen: React.FC = () => {
       <Box
         p={4}
         bg={cardBg}
-        borderRadius={16}
+        borderRadius={20}
         borderWidth={1}
         borderColor={border}
-        shadow={1}
+        shadow={2}
       >
         <HStack justifyContent="space-between" alignItems="flex-start" space={3}>
           {/* Left side: Icon and details */}
@@ -214,7 +214,7 @@ const ExpensesListScreen: React.FC = () => {
             <Box
               p={2}
               bg="blue.100"
-              borderRadius={12}
+              borderRadius={20}
               alignItems="center"
               justifyContent="center"
             >
@@ -296,7 +296,7 @@ const ExpensesListScreen: React.FC = () => {
       </Text>
       <Button
         colorScheme="blue"
-        borderRadius={16}
+        borderRadius={20}
         onPress={() => navigation.navigate('AddEditExpense')}
         leftIcon={<Icon as={Ionicons} name="add" size="sm" />}
       >
@@ -336,7 +336,7 @@ const ExpensesListScreen: React.FC = () => {
             <Button
               size="sm"
               colorScheme="blue"
-              borderRadius={12}
+              borderRadius={20}
               onPress={() => navigation.navigate('AddEditExpense')}
               leftIcon={<Icon as={Ionicons} name="add" size="xs" />}
             >
@@ -349,7 +349,7 @@ const ExpensesListScreen: React.FC = () => {
             placeholder="Search expenses..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            borderRadius={12}
+            borderRadius={20}
             bg={bg}
             borderColor={border}
             InputLeftElement={
@@ -383,7 +383,7 @@ const ExpensesListScreen: React.FC = () => {
               selectedValue={selectedCategory}
               onValueChange={(value: string) => setSelectedCategory(value || '')}
               placeholder="All Categories"
-              borderRadius={12}
+              borderRadius={20}
               bg={bg}
               borderColor={border}
               _selectedItem={{
@@ -406,7 +406,7 @@ const ExpensesListScreen: React.FC = () => {
                 setSortBy(newSortBy || 'date');
                 setSortOrder(newSortOrder || 'desc');
               }}
-              borderRadius={12}
+              borderRadius={20}
               bg={bg}
               borderColor={border}
               _selectedItem={{

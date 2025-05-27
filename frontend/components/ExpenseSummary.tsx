@@ -39,9 +39,9 @@ const ExpenseSummary = () => {
     return (
       <Box 
         p={6} 
-        borderRadius={24} 
+        borderRadius={20} 
         bg={heroCardBg} 
-        shadow={3}
+        shadow={2}
         borderWidth={1}
         borderColor={border}
         mb={6}
@@ -62,9 +62,9 @@ const ExpenseSummary = () => {
     return (
       <Box 
         p={6} 
-        borderRadius={24} 
+        borderRadius={20} 
         bg={errorBg} 
-        shadow={3}
+        shadow={2}
         borderWidth={1}
         borderColor={errorBorder}
         mb={6}
@@ -109,9 +109,9 @@ const ExpenseSummary = () => {
       {/* Hero Card - Main Monthly Overview with Integrated Breakdown */}
       <Box 
         p={6} 
-        borderRadius={24} 
+        borderRadius={20} 
         bg={heroCardBg} 
-        shadow={3}
+        shadow={2}
         borderWidth={1}
         borderColor={border}
       >
@@ -177,7 +177,7 @@ const ExpenseSummary = () => {
               justifyContent="space-between" 
               alignItems="center"
               p={3}
-              borderRadius={12}
+              borderRadius={20}
               bg={toggleBg}
               borderWidth={1}
               borderColor={border}
@@ -217,7 +217,7 @@ const ExpenseSummary = () => {
         {/* Smart Insight - Apple's helpful, contextual information */}
         <Box 
           p={3} 
-          borderRadius={12} 
+          borderRadius={20} 
           bg={insightBg}
           borderWidth={1}
           borderColor={border}
@@ -241,7 +241,7 @@ const ExpenseSummary = () => {
         <Box 
           flex={1}
           p={4} 
-          borderRadius={16} 
+          borderRadius={20} 
           bg={cardBg} 
           shadow={2}
           borderWidth={1}
@@ -264,7 +264,7 @@ const ExpenseSummary = () => {
         <Box 
           flex={1}
           p={4} 
-          borderRadius={16} 
+          borderRadius={20} 
           bg={cardBg} 
           shadow={2}
           borderWidth={1}

@@ -64,11 +64,11 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress, isUploading 
     >
       <Box
         p={4}
-        borderRadius={16}
+        borderRadius={20}
         bg={isPrimary ? primaryActionBg : secondaryActionBg}
         borderWidth={1}
         borderColor={border}
-        shadow={isPrimary ? 2 : 1}
+        shadow={2}
         minH="20"
         justifyContent="center"
         alignItems="center"
@@ -76,7 +76,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress, isUploading 
         <VStack space={2} alignItems="center">
           <Box
             p={2}
-            borderRadius={12}
+            borderRadius={20}
             bg={isPrimary ? 'rgba(255,255,255,0.2)' : useColorModeValue('white', 'gray.700')}
           >
             <Ionicons 

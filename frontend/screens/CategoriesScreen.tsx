@@ -143,7 +143,7 @@ const CategoriesScreen: React.FC = () => {
               <Pressable key={category}>
                 <Box
                   p={4}
-                  borderRadius={16}
+                  borderRadius={20}
                   bg={cardBg}
                   shadow={2}
                   borderWidth={1}
@@ -154,7 +154,7 @@ const CategoriesScreen: React.FC = () => {
                     <Box
                       p={3}
                       bg={iconData.bg}
-                      borderRadius={12}
+                      borderRadius={20}
                       alignItems="center"
                       justifyContent="center"
                     >

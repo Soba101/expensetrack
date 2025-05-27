@@ -177,7 +177,7 @@ const RecentTransactions = () => {
       >
         <Box
           p={3}
-          borderRadius={12}
+          borderRadius={20}
           bg={transactionItemBg}
           borderWidth={1}
           borderColor={isExpanded ? 'blue.300' : 'transparent'}
@@ -189,7 +189,7 @@ const RecentTransactions = () => {
               <Box
                 p={2}
                 bg={iconData.bg}
-                borderRadius={10}
+                borderRadius={20}
                 alignItems="center"
                 justifyContent="center"
                 position="relative"
@@ -347,7 +347,7 @@ const RecentTransactions = () => {
       <Button 
         mt={4} 
         colorScheme="blue" 
-        borderRadius={16} 
+        borderRadius={20} 
         size="sm"
         onPress={() => navigation.navigate('ExpensesList')}
         _text={{ fontWeight: 'semibold' }}

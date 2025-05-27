@@ -96,10 +96,10 @@ const UserInfo = () => {
   return (
     <Box 
       p={4} 
-      borderRadius={16} 
+      borderRadius={20} 
       mb={4} 
       bg={cardBgSolid} // Using solid color as gradient fallback
-      shadow={3}
+      shadow={2}
       position="relative"
       overflow="hidden"
     >

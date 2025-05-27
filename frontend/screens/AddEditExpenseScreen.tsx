@@ -6,35 +6,38 @@ import {
   Text, 
   Button, 
   useColorModeValue, 
-  ScrollView, 
   useToast,
   Image,
   Center,
-  Icon
+  Icon,
+  Pressable,
+  Select,
+  CheckIcon
 } from 'native-base';
-import { TextInput, StyleSheet, Dimensions } from 'react-native';
+import { TextInput, StyleSheet, Dimensions, FlatList } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as expenseService from '../services/expenseService';
 
 const { width } = Dimensions.get('window');
 
-// Styles for TextInput components
+// Clean, minimal styles for form inputs
 const styles = StyleSheet.create({
   textInput: {
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontSize: 16,
-    minHeight: 48,
+    minHeight: 50,
+    fontWeight: '400',
   },
 });
 
 // Interface for route params
 interface RouteParams {
   receiptData?: {
-    _id?: string; // Optional since it might not be saved yet
+    _id?: string;
     image: string;
     date: string;
     amount: number;
@@ -43,24 +46,26 @@ interface RouteParams {
   isFromUpload?: boolean;
 }
 
-// AddEditExpenseScreen: Form to add or edit an expense, including receipt upload.
+// Clean and minimal AddEditExpenseScreen
 const AddEditExpenseScreen: React.FC = () => {
   const route = useRoute();
   const navigation = useNavigation();
   const toast = useToast();
   
-  // Get route parameters - use stable references
+  // Get route parameters
   const params = route.params as RouteParams;
-  const receiptDataId = params?.receiptData?._id || 'temp-receipt'; // Use temp ID for unsaved receipts
+  const receiptDataId = params?.receiptData?._id || 'temp-receipt';
   const receiptData = params?.receiptData;
   const isFromUpload = params?.isFromUpload || false;
 
-  // Theme colors
-  const bg = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
+  // Clean theme colors
+  const bg = useColorModeValue('white', 'gray.900');
+  const cardBg = useColorModeValue('gray.50', 'gray.800');
+  const border = useColorModeValue('gray.300', 'gray.600');
   const heading = useColorModeValue('gray.900', 'gray.100');
-  const text = useColorModeValue('gray.800', 'gray.200');
+  const text = useColorModeValue('gray.700', 'gray.200');
+  const subtext = useColorModeValue('gray.500', 'gray.400');
+  const inputBg = useColorModeValue('white', 'gray.700');
 
   // Form state
   const [amount, setAmount] = useState('');
@@ -69,52 +74,65 @@ const AddEditExpenseScreen: React.FC = () => {
   const [category, setCategory] = useState('');
   const [vendor, setVendor] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [hasShownToast, setHasShownToast] = useState(false); // Prevent multiple toast shows
+  const [hasShownToast, setHasShownToast] = useState(false);
 
-  // Helper function to format date as YYYY-MM-DD for consistent parsing
+  // Common categories for dropdown
+  const categories = [
+    'Food & Dining',
+    'Transportation',
+    'Shopping',
+    'Entertainment',
+    'Bills & Utilities',
+    'Healthcare',
+    'Travel',
+    'Education',
+    'Business',
+    'Personal Care',
+    'Other'
+  ];
+
+  // Helper function to format date
   const formatDateForInput = (dateString: string): string => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        // If invalid date, return today's date
         return new Date().toISOString().split('T')[0];
       }
-      return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD format
+      return date.toISOString().split('T')[0];
     } catch (error) {
       console.error('Error formatting date:', error);
       return new Date().toISOString().split('T')[0];
     }
   };
 
-  // Initialize form with receipt data if available - use stable ID to prevent infinite loops
+  // Initialize form with receipt data
   useEffect(() => {
     if (receiptData && receiptDataId) {
       setAmount(receiptData.amount.toString());
       setDescription(receiptData.description);
       setDate(formatDateForInput(receiptData.date));
       
-      // Show success message for uploaded receipt (only once)
       if (isFromUpload && !hasShownToast) {
         toast.show({
-          title: 'Receipt Processed!',
-          description: 'Please review and edit the details below, then save your expense.',
-          duration: 4000,
+          title: 'Receipt Processed',
+          description: 'Please review the extracted details below.',
+          duration: 3000,
         });
         setHasShownToast(true);
       }
     }
-  }, [receiptDataId, isFromUpload, hasShownToast]); // Use stable ID instead of object
+  }, [receiptDataId, isFromUpload, hasShownToast]);
 
-  // Set default date separately to avoid conflicts
+  // Set default date
   useEffect(() => {
     if (!receiptDataId && !date) {
       setDate(formatDateForInput(new Date().toISOString()));
     }
   }, [receiptDataId, date]);
 
-  // Handle form submission - now actually saves to backend
+  // Handle form submission
   const handleSave = async () => {
-    // Validate required fields
+    // Simple validation
     if (!amount || !description) {
       toast.show({
         title: 'Missing Information',
@@ -124,51 +142,33 @@ const AddEditExpenseScreen: React.FC = () => {
       return;
     }
 
-    // Validate date
-    const parsedDate = new Date(date);
-    if (isNaN(parsedDate.getTime())) {
-      toast.show({
-        title: 'Invalid Date',
-        description: 'Please enter a valid date in YYYY-MM-DD format.',
-        duration: 3000,
-      });
-      return;
-    }
-
     setIsSaving(true);
     
     try {
-      // Prepare expense data
       const expenseData: expenseService.ExpenseData = {
         amount: parseFloat(amount),
         description: description.trim(),
-        date: parsedDate.toISOString(), // Use the validated parsed date
+        date: new Date(date).toISOString(),
         category: category.trim() || undefined,
         vendor: vendor.trim() || undefined,
-        receiptImage: receiptData?.image || undefined, // Include receipt image if available
+        receiptImage: receiptData?.image || undefined,
       };
 
-      // Save expense (and receipt if present) to backend
-      const result = await expenseService.saveExpense(expenseData);
-      
-      console.log('Expense saved successfully:', result);
+      await expenseService.saveExpense(expenseData);
       
       toast.show({
-        title: 'Expense Saved!',
-        description: receiptData 
-          ? 'Your expense and receipt have been successfully recorded.'
-          : 'Your expense has been successfully recorded.',
-        duration: 3000,
+        title: 'Expense Saved',
+        description: 'Your expense has been recorded successfully.',
+        duration: 2000,
       });
 
-      // Navigate back to dashboard
       navigation.goBack();
       
     } catch (error: any) {
       console.error('Save error:', error);
       toast.show({
         title: 'Save Failed',
-        description: error.message || 'Failed to save expense. Please try again.',
+        description: error.message || 'Please try again.',
         duration: 3000,
       });
     } finally {
@@ -176,201 +176,235 @@ const AddEditExpenseScreen: React.FC = () => {
     }
   };
 
-  return (
-    <ScrollView flex={1} bg={bg} p={4} pt={8}>
-      <VStack space={6}>
-        {/* Header */}
-        <Box>
-          <Text fontSize="2xl" fontWeight="bold" color={heading} mb={2}>
-            {receiptData ? 'Review Receipt' : 'Add Expense'}
-          </Text>
-          {isFromUpload && (
-            <Text fontSize="md" color={text}>
-              Receipt uploaded successfully! Please review and edit the details below.
-            </Text>
-          )}
-        </Box>
+  // Clean input component
+  const FormInput = ({ 
+    label, 
+    value, 
+    onChangeText, 
+    placeholder, 
+    keyboardType = 'default',
+    required = false
+  }: {
+    label: string;
+    value: string;
+    onChangeText: (text: string) => void;
+    placeholder: string;
+    keyboardType?: any;
+    required?: boolean;
+  }) => (
+    <VStack space={2} mb={5}>
+      <Text fontSize="sm" fontWeight="600" color={text}>
+        {label} {required && <Text color="red.500">*</Text>}
+      </Text>
+      <TextInput
+        style={[
+          styles.textInput,
+          {
+            borderColor: border,
+            backgroundColor: inputBg,
+            color: text,
+          }
+        ]}
+        placeholder={placeholder}
+        placeholderTextColor={subtext}
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+      />
+    </VStack>
+  );
 
-        {/* Receipt Image Preview (if available) */}
-        {receiptData?.image && (
-          <Box p={4} borderWidth={1} borderRadius={20} bg={cardBg} borderColor={border} shadow={2}>
-            <Text fontSize="lg" fontWeight="bold" mb={3} color={heading}>Receipt Image</Text>
+  // Create form data for FlatList
+  const formData = [
+    { id: 'receipt', type: 'receipt' },
+    { id: 'form', type: 'form' },
+    { id: 'buttons', type: 'buttons' },
+    { id: 'info', type: 'info' },
+  ];
+
+  // Render each section
+  const renderFormSection = ({ item }: { item: any }) => {
+    switch (item.type) {
+      case 'receipt':
+        return receiptData?.image ? (
+          <Box 
+            p={4} 
+            borderRadius={16} 
+            bg={cardBg} 
+            mb={6}
+          >
+            <Text fontSize="md" fontWeight="600" color={text} mb={3}>
+              Receipt Image
+            </Text>
             <Center>
               <Image
                 source={{ uri: receiptData.image }}
                 alt="Receipt"
                 width="100%"
-                height={200}
-                borderRadius={10}
-                resizeMode="contain"
+                height={160}
+                borderRadius={12}
+                resizeMode="cover"
               />
             </Center>
           </Box>
-        )}
+        ) : null;
 
-        {/* Expense Form */}
-        <Box p={4} borderWidth={1} borderRadius={20} bg={cardBg} borderColor={border} shadow={2}>
-          <Text fontSize="lg" fontWeight="bold" mb={4} color={heading}>Expense Details</Text>
-          
-          <VStack space={4}>
-            {/* Amount Input */}
-            <Box>
-              <Text fontSize="sm" fontWeight="medium" color={text} mb={2}>
-                Amount *
-              </Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    borderColor: border,
-                    backgroundColor: cardBg,
-                    color: text,
-                  }
-                ]}
-                placeholder="0.00"
-                placeholderTextColor="gray"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="decimal-pad"
-              />
-            </Box>
+      case 'form':
+        return (
+          <VStack space={0}>
+            <FormInput
+              label="Amount"
+              value={amount}
+              onChangeText={setAmount}
+              placeholder="0.00"
+              keyboardType="decimal-pad"
+              required={true}
+            />
 
-            {/* Description Input */}
-            <Box>
-              <Text fontSize="sm" fontWeight="medium" color={text} mb={2}>
-                Description *
-              </Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    borderColor: border,
-                    backgroundColor: cardBg,
-                    color: text,
-                  }
-                ]}
-                placeholder="What was this expense for?"
-                placeholderTextColor="gray"
-                value={description}
-                onChangeText={setDescription}
-              />
-            </Box>
+            <FormInput
+              label="Description"
+              value={description}
+              onChangeText={setDescription}
+              placeholder="What was this expense for?"
+              required={true}
+            />
 
-            {/* Date Input */}
-            <Box>
-              <Text fontSize="sm" fontWeight="medium" color={text} mb={2}>
-                Date
-              </Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    borderColor: border,
-                    backgroundColor: cardBg,
-                    color: text,
-                  }
-                ]}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="gray"
-                value={date}
-                onChangeText={setDate}
-              />
-            </Box>
+            <FormInput
+              label="Date"
+              value={date}
+              onChangeText={setDate}
+              placeholder="YYYY-MM-DD"
+            />
 
-            {/* Vendor Input */}
-            <Box>
-              <Text fontSize="sm" fontWeight="medium" color={text} mb={2}>
-                Vendor/Store
-              </Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    borderColor: border,
-                    backgroundColor: cardBg,
-                    color: text,
-                  }
-                ]}
-                placeholder="Where did you make this purchase?"
-                placeholderTextColor="gray"
-                value={vendor}
-                onChangeText={setVendor}
-              />
-            </Box>
+            <FormInput
+              label="Vendor"
+              value={vendor}
+              onChangeText={setVendor}
+              placeholder="Where did you make this purchase?"
+            />
 
-            {/* Category Input */}
-            <Box>
-              <Text fontSize="sm" fontWeight="medium" color={text} mb={2}>
+            {/* Category Dropdown */}
+            <VStack space={2} mb={5}>
+              <Text fontSize="sm" fontWeight="600" color={text}>
                 Category
               </Text>
-              <TextInput
-                style={[
-                  styles.textInput,
-                  {
-                    borderColor: border,
-                    backgroundColor: cardBg,
-                    color: text,
-                  }
-                ]}
-                placeholder="e.g., Food, Travel, Office Supplies"
-                placeholderTextColor="gray"
-                value={category}
-                onChangeText={setCategory}
-              />
-            </Box>
+              <Select
+                selectedValue={category}
+                onValueChange={(value: string) => setCategory(value || '')}
+                placeholder="Select a category"
+                borderRadius={12}
+                borderColor={border}
+                bg={inputBg}
+                fontSize="md"
+                _selectedItem={{
+                  bg: 'blue.100',
+                  endIcon: <CheckIcon size="xs" />,
+                }}
+              >
+                {categories.map(cat => (
+                  <Select.Item key={cat} label={cat} value={cat} />
+                ))}
+              </Select>
+            </VStack>
           </VStack>
-        </Box>
+        );
 
-        {/* Action Buttons */}
-        <HStack space={4}>
-          <Button
-            flex={1}
-            variant="outline"
-            borderRadius={20}
-            onPress={() => navigation.goBack()}
-            _text={{ fontWeight: 'bold' }}
-          >
-            Cancel
-          </Button>
-          <Button
-            flex={1}
-            colorScheme="green"
-            borderRadius={20}
-            onPress={handleSave}
-            isLoading={isSaving}
-            isDisabled={isSaving}
-            _text={{ fontWeight: 'bold' }}
-            leftIcon={<Ionicons name="checkmark-circle" size={20} color="white" />}
-          >
-            {isSaving ? 'Saving...' : 'Save Expense'}
-          </Button>
-        </HStack>
+      case 'buttons':
+        return (
+          <VStack space={3} mt={6}>
+            <Button
+              size="lg"
+              colorScheme="blue"
+              borderRadius={12}
+              onPress={handleSave}
+              isLoading={isSaving}
+              isDisabled={isSaving}
+              _text={{ fontWeight: '600', fontSize: 'md' }}
+            >
+              {isSaving ? 'Saving...' : 'Save Expense'}
+            </Button>
+            
+            <Button
+              size="lg"
+              variant="outline"
+              borderRadius={12}
+              onPress={() => navigation.goBack()}
+              _text={{ fontWeight: '500', fontSize: 'md' }}
+            >
+              Cancel
+            </Button>
+          </VStack>
+        );
 
-        {/* Receipt Info (if from upload) */}
-        {receiptData && (
-          <Box p={4} borderWidth={1} borderRadius={20} bg="blue.50" borderColor="blue.200">
-            <HStack alignItems="center" space={2} mb={2}>
-              <Icon as={Ionicons} name="information-circle" size="sm" color="blue.500" />
-              <Text fontSize="sm" fontWeight="bold" color="blue.700">
-                Receipt Information
-              </Text>
-            </HStack>
-            {receiptData._id ? (
-              <Text fontSize="xs" color="blue.600">
-                Receipt ID: {receiptData._id}
-              </Text>
-            ) : (
-              <Text fontSize="xs" color="blue.600">
-                Receipt will be saved when you save this expense
-              </Text>
-            )}
-            <Text fontSize="xs" color="blue.600">
-              Processed: {new Date(receiptData.date).toLocaleString()}
+      case 'info':
+        return receiptData ? (
+          <Box 
+            p={4} 
+            borderRadius={12} 
+            bg={cardBg}
+            mt={6}
+          >
+            <Text fontSize="sm" fontWeight="600" color={text} mb={1}>
+              Receipt Information
+            </Text>
+            <Text fontSize="xs" color={subtext}>
+              {receiptData._id 
+                ? `ID: ${receiptData._id}`
+                : 'Will be saved with this expense'
+              }
             </Text>
           </Box>
-        )}
-      </VStack>
-    </ScrollView>
+        ) : null;
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Box flex={1} bg={bg} pt={8}>
+      {/* Simple Header */}
+      <Box 
+        pt={10} 
+        pb={2} 
+        px={6}
+        borderBottomWidth={1}
+        borderBottomColor={border}
+      >
+        <HStack alignItems="center" justifyContent="space-between" mb={4}>
+          <Pressable onPress={() => navigation.goBack()}>
+            <HStack alignItems="center" space={2}>
+              <Icon as={Ionicons} name="arrow-back" size="md" color={text} />
+              <Text fontSize="md" color={text}>Back</Text>
+            </HStack>
+          </Pressable>
+          
+          {receiptData && (
+            <HStack alignItems="center" space={1}>
+              <Icon as={Ionicons} name="camera" size="sm" color="green.500" />
+              <Text fontSize="sm" color="green.500" fontWeight="500">Receipt</Text>
+            </HStack>
+          )}
+        </HStack>
+        
+        <Text fontSize="2xl" fontWeight="700" color={heading}>
+          {receiptData ? 'Review Receipt' : 'Add Expense'}
+        </Text>
+      </Box>
+
+      {/* FlatList for form content */}
+      <FlatList
+        data={formData}
+        renderItem={renderFormSection}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ 
+          paddingHorizontal: 24, 
+          paddingVertical: 24,
+          paddingBottom: 40 
+        }}
+        showsVerticalScrollIndicator={false}
+      />
+    </Box>
   );
 };
 

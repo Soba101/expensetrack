@@ -121,10 +121,11 @@ const SettingsScreen: React.FC = () => {
         {title}
       </Text>
       <Box
-        borderRadius={12}
+        borderRadius={20}
         bg={cardBg}
         borderWidth={1}
         borderColor={border}
+        shadow={2}
         overflow="hidden"
       >
         {children}
@@ -134,7 +135,7 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <ScrollView flex={1} bg={bg}>
-      <Box p={4} pt={6}>
+      <Box p={4} pt={8}>
         {/* Account Section */}
         <SettingsSection title="Account">
           <SettingsItem

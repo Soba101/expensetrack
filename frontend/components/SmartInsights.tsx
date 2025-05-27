@@ -235,17 +235,17 @@ const SmartInsights = () => {
     return (
       <Box
         p={4}
-        borderRadius={16}
+        borderRadius={20}
         bg={colors.bg}
         borderWidth={1}
         borderColor={colors.border}
-        shadow={1}
+        shadow={2}
       >
         <HStack space={3} alignItems="flex-start">
           {/* Icon with background */}
           <Box
             p={2}
-            borderRadius={12}
+            borderRadius={20}
             bg={iconBg}
             shadow={1}
           >
@@ -306,10 +306,11 @@ const SmartInsights = () => {
         
         <Box
           p={6}
-          borderRadius={16}
+          borderRadius={20}
           bg={cardBg}
           borderWidth={1}
           borderColor={border}
+          shadow={2}
           alignItems="center"
           justifyContent="center"
           minH={120}
@@ -353,7 +354,7 @@ const SmartInsights = () => {
       <Box
         mt={4}
         p={3}
-        borderRadius={12}
+        borderRadius={20}
         bg={footerBg}
         borderWidth={1}
         borderColor={border}
