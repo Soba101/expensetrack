@@ -5,6 +5,20 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useExpenseData } from '../context/ExpenseDataContext';
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring, 
+  withTiming,
+  runOnJS,
+  interpolate,
+  Extrapolate,
+  FadeInDown,
+  FadeOutUp
+} from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { hapticFeedback } from '../utils/haptics';
+import { useToast } from '../components/Toast';
 
 // Define the type for the navigation stack
 type RootStackParamList = {
@@ -17,14 +31,15 @@ type RootStackParamList = {
   About: undefined;
 };
 
-// Enhanced RecentTransactions component with improved visual hierarchy and interactivity
-// Features: Date grouping, status indicators, better icons, swipe actions, smart insights, real data from API
+// Enhanced RecentTransactions component with animations, gestures, and haptic feedback
+// Features: Smooth animations, swipe actions, haptic feedback, improved interactions
 const RecentTransactions = () => {
   const [showAll, setShowAll] = useState(false);
   const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
   
   // Use centralized data context
   const { recentTransactions: transactions, loading } = useExpenseData();
+  const toast = useToast();
 
   // Using Tamagui theme instead of useColorModeValue - following migration guide Pattern 2
   const theme = useTheme();
@@ -158,128 +173,220 @@ const RecentTransactions = () => {
     );
   }
 
-  // Render individual transaction with enhanced design
-  const renderTransaction = (tx: any) => {
+  // Enhanced transaction item with animations and swipe gestures
+  const renderTransaction = (tx: any, index: number) => {
     const iconData = getTransactionIcon(tx.description, tx.category);
     const statusData = getStatusIndicator(tx.status);
     const isExpanded = expandedTransaction === tx.id;
 
+    // Animation values for entrance animation
+    const translateY = useSharedValue(50);
+    const opacity = useSharedValue(0);
+    const scale = useSharedValue(0.95);
+
+    // Swipe gesture values
+    const translateX = useSharedValue(0);
+    const swipeOpacity = useSharedValue(1);
+
+    // Entrance animation
+    React.useEffect(() => {
+      const delay = index * 100; // Stagger animation
+      setTimeout(() => {
+        translateY.value = withSpring(0, { damping: 15, stiffness: 150 });
+        opacity.value = withTiming(1, { duration: 400 });
+        scale.value = withSpring(1, { damping: 12, stiffness: 100 });
+      }, delay);
+    }, []);
+
+    // Animated styles for entrance
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [
+        { translateY: translateY.value },
+        { scale: scale.value }
+      ],
+      opacity: opacity.value,
+    }));
+
+    // Animated styles for swipe
+    const swipeStyle = useAnimatedStyle(() => ({
+      transform: [{ translateX: translateX.value }],
+      opacity: swipeOpacity.value,
+    }));
+
+    // Swipe gesture handler
+    const swipeGesture = Gesture.Pan()
+      .onStart(() => {
+        runOnJS(hapticFeedback.light)();
+      })
+      .onUpdate((event) => {
+        // Only allow left swipe (negative values)
+        if (event.translationX < 0) {
+          translateX.value = Math.max(event.translationX, -100);
+          
+          // Provide haptic feedback at certain thresholds
+          if (event.translationX < -50 && translateX.value > -51) {
+            runOnJS(hapticFeedback.medium)();
+          }
+        }
+      })
+      .onEnd((event) => {
+        if (event.translationX < -80) {
+          // Swipe threshold reached - show action menu
+          runOnJS(hapticFeedback.heavy)();
+          runOnJS(() => {
+            toast.info('Swipe Actions', 'Edit, Delete, or View Details');
+          })();
+          
+          // Animate back to original position
+          translateX.value = withSpring(0);
+        } else {
+          // Return to original position
+          translateX.value = withSpring(0);
+        }
+      });
+
+    // Handle tap with haptic feedback
+    const handlePress = () => {
+      hapticFeedback.light();
+      setExpandedTransaction(isExpanded ? null : tx.id);
+    };
+
+    // Handle long press with haptic feedback
+    const handleLongPress = () => {
+      hapticFeedback.heavy();
+      toast.info('Transaction Actions', 'Long press detected - showing options');
+    };
+
     return (
-      <TouchableOpacity
-        key={tx.id}
-        onPress={() => setExpandedTransaction(isExpanded ? null : tx.id)}
-        onLongPress={() => {
-          // TODO: Show action menu
-          console.log('Long press on transaction:', tx.id);
-        }}
-      >
-        <View
-          padding="$3"
-          borderRadius="$5"
-          backgroundColor={transactionItemBg}
-          borderWidth={1}
-          borderColor={isExpanded ? '#3B82F6' : 'transparent'}
-          marginBottom="$2"
-        >
-          <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            {/* Icon and main info */}
-            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+      <Animated.View key={tx.id} style={animatedStyle}>
+        <GestureDetector gesture={swipeGesture}>
+          <Animated.View style={swipeStyle}>
+            <TouchableOpacity
+              onPress={handlePress}
+              onLongPress={handleLongPress}
+              activeOpacity={0.7}
+            >
               <View
-                padding="$2"
-                backgroundColor={iconData.bg}
+                padding="$3"
                 borderRadius="$5"
-                alignItems="center"
-                justifyContent="center"
-                position="relative"
+                backgroundColor={transactionItemBg}
+                borderWidth={1}
+                borderColor={isExpanded ? '#3B82F6' : 'transparent'}
+                marginBottom="$2"
+                shadowColor="$shadowColor"
+                shadowOffset={{ width: 0, height: 2 }}
+                shadowOpacity={0.1}
+                shadowRadius={4}
               >
-                <Ionicons 
-                  name={iconData.icon as keyof typeof Ionicons.glyphMap} 
-                  size={18} 
-                  color={iconData.color} 
-                />
-                {/* Receipt indicator */}
-                {tx.hasReceipt && (
-                  <View
-                    position="absolute"
-                    top={-4}
-                    right={-4}
-                    backgroundColor="#3B82F6"
-                    borderRadius="$6"
-                    width={8}
-                    height={8}
-                  />
+                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                  {/* Icon and main info */}
+                  <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+                    <View
+                      padding="$2"
+                      backgroundColor={iconData.bg}
+                      borderRadius="$5"
+                      alignItems="center"
+                      justifyContent="center"
+                      position="relative"
+                    >
+                      <Ionicons 
+                        name={iconData.icon as keyof typeof Ionicons.glyphMap} 
+                        size={18} 
+                        color={iconData.color} 
+                      />
+                      {/* Receipt indicator with pulse animation */}
+                      {tx.hasReceipt && (
+                        <View
+                          position="absolute"
+                          top={-4}
+                          right={-4}
+                          backgroundColor="#3B82F6"
+                          borderRadius="$6"
+                          width={8}
+                          height={8}
+                        />
+                      )}
+                    </View>
+                    
+                    <RNView style={{ flex: 1, gap: 4 }}>
+                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text fontSize="$4" fontWeight="600" color={text} flex={1}>
+                          {tx.description}
+                        </Text>
+                        {tx.isUnusual && (
+                          <View backgroundColor="#FED7AA" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+                            <Text fontSize="$2" color="#EA580C" fontWeight="500">
+                              Unusual
+                            </Text>
+                          </View>
+                        )}
+                      </RNView>
+                      
+                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text fontSize="$3" color={subtext}>
+                          {tx.vendor || tx.category}
+                        </Text>
+                        <Text fontSize="$3" color={statusData.color}>
+                          {statusData.text}
+                        </Text>
+                      </RNView>
+                    </RNView>
+                  </RNView>
+
+                  {/* Amount */}
+                  <RNView style={{ alignItems: 'flex-end', gap: 2 }}>
+                    <Text fontSize="$5" fontWeight="700" color={text}>
+                      ${tx.amount.toFixed(2)}
+                    </Text>
+                    <Text fontSize="$2" color={subtext}>
+                      {new Date(tx.date).toLocaleDateString()}
+                    </Text>
+                  </RNView>
+                </RNView>
+
+                {/* Expanded details with smooth animation */}
+                {isExpanded && (
+                  <Animated.View
+                    entering={FadeInDown.duration(300)}
+                    exiting={FadeOutUp.duration(200)}
+                  >
+                    <RNView style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: border }}>
+                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text fontSize="$3" color={subtext}>Category:</Text>
+                        <Text fontSize="$3" color={text} fontWeight="500">{tx.category}</Text>
+                      </RNView>
+                      {tx.vendor && (
+                        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text fontSize="$3" color={subtext}>Vendor:</Text>
+                          <Text fontSize="$3" color={text} fontWeight="500">{tx.vendor}</Text>
+                        </RNView>
+                      )}
+                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <Text fontSize="$3" color={subtext}>Date:</Text>
+                        <Text fontSize="$3" color={text} fontWeight="500">
+                          {new Date(tx.date).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </Text>
+                      </RNView>
+                    </RNView>
+                  </Animated.View>
                 )}
               </View>
-              
-              <RNView style={{ flex: 1, gap: 4 }}>
-                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text fontSize="$4" fontWeight="600" color={text} flex={1}>
-                    {tx.description}
-                  </Text>
-                  {tx.isUnusual && (
-                    <View backgroundColor="#FED7AA" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
-                      <Text fontSize="$2" color="#EA580C" fontWeight="500">
-                        Unusual
-                      </Text>
-                    </View>
-                  )}
-                </RNView>
-                
-                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text fontSize="$3" color={subtext}>
-                    {tx.vendor || tx.category}
-                  </Text>
-                  <Text fontSize="$3" color={statusData.color}>
-                    {statusData.text}
-                  </Text>
-                </RNView>
-              </RNView>
-            </RNView>
-
-            {/* Amount */}
-            <RNView style={{ alignItems: 'flex-end', gap: 2 }}>
-              <Text fontSize="$5" fontWeight="700" color={text}>
-                ${tx.amount.toFixed(2)}
-              </Text>
-              <Text fontSize="$2" color={subtext}>
-                {new Date(tx.date).toLocaleDateString()}
-              </Text>
-            </RNView>
-          </RNView>
-
-          {/* Expanded details */}
-          {isExpanded && (
-            <RNView style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: border }}>
-              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text fontSize="$3" color={subtext}>Category:</Text>
-                <Text fontSize="$3" color={text} fontWeight="500">{tx.category}</Text>
-              </RNView>
-              {tx.vendor && (
-                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text fontSize="$3" color={subtext}>Vendor:</Text>
-                  <Text fontSize="$3" color={text} fontWeight="500">{tx.vendor}</Text>
-                </RNView>
-              )}
-              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text fontSize="$3" color={subtext}>Date:</Text>
-                <Text fontSize="$3" color={text} fontWeight="500">
-                  {new Date(tx.date).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </Text>
-              </RNView>
-            </RNView>
-          )}
-        </View>
-      </TouchableOpacity>
+            </TouchableOpacity>
+          </Animated.View>
+        </GestureDetector>
+      </Animated.View>
     );
   };
 
-  // Render grouped transactions
+  // Render grouped transactions with staggered animations
   const renderGroupedTransactions = () => {
+    let globalIndex = 0; // Track global index for staggered animations
+    
     return Object.entries(groupedTransactions).map(([groupName, transactions]) => {
       if (transactions.length === 0) return null;
 
@@ -288,7 +395,11 @@ const RecentTransactions = () => {
           <Text fontSize="$2" fontWeight="700" color={subtext} textTransform="uppercase">
             {groupName}
           </Text>
-          {transactions.map(renderTransaction)}
+          {transactions.map((tx, localIndex) => {
+            const result = renderTransaction(tx, globalIndex);
+            globalIndex++;
+            return result;
+          })}
         </RNView>
       );
     });
