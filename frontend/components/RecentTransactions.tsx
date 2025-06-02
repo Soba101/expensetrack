@@ -5,18 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useExpenseData } from '../context/ExpenseDataContext';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming,
-  runOnJS,
-  interpolate,
-  Extrapolate,
-  FadeInDown,
-  FadeOutUp
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { hapticFeedback } from '../utils/haptics';
 import { useToast } from '../components/Toast';
 
@@ -31,11 +19,12 @@ type RootStackParamList = {
   About: undefined;
 };
 
-// Enhanced RecentTransactions component with animations, gestures, and haptic feedback
-// Features: Smooth animations, swipe actions, haptic feedback, improved interactions
+// Enhanced RecentTransactions component with Tamagui animations and haptic feedback
 const RecentTransactions = () => {
   const [showAll, setShowAll] = useState(false);
   const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
+  // Track pressed state for all transactions using a Set
+  const [pressedTransactions, setPressedTransactions] = useState<Set<string>>(new Set());
   
   // Use centralized data context
   const { recentTransactions: transactions, loading } = useExpenseData();
@@ -173,213 +162,166 @@ const RecentTransactions = () => {
     );
   }
 
-  // Enhanced transaction item with animations and swipe gestures
+  // Enhanced transaction item with Tamagui animations
   const renderTransaction = (tx: any, index: number) => {
     const iconData = getTransactionIcon(tx.description, tx.category);
     const statusData = getStatusIndicator(tx.status);
     const isExpanded = expandedTransaction === tx.id;
+    const isPressed = pressedTransactions.has(tx.id);
 
-    // Animation values for entrance animation
-    const translateY = useSharedValue(50);
-    const opacity = useSharedValue(0);
-    const scale = useSharedValue(0.95);
-
-    // Swipe gesture values
-    const translateX = useSharedValue(0);
-    const swipeOpacity = useSharedValue(1);
-
-    // Entrance animation
-    React.useEffect(() => {
-      const delay = index * 100; // Stagger animation
-      setTimeout(() => {
-        translateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-        opacity.value = withTiming(1, { duration: 400 });
-        scale.value = withSpring(1, { damping: 12, stiffness: 100 });
-      }, delay);
-    }, []);
-
-    // Animated styles for entrance
-    const animatedStyle = useAnimatedStyle(() => ({
-      transform: [
-        { translateY: translateY.value },
-        { scale: scale.value }
-      ],
-      opacity: opacity.value,
-    }));
-
-    // Animated styles for swipe
-    const swipeStyle = useAnimatedStyle(() => ({
-      transform: [{ translateX: translateX.value }],
-      opacity: swipeOpacity.value,
-    }));
-
-    // Swipe gesture handler
-    const swipeGesture = Gesture.Pan()
-      .onStart(() => {
-        runOnJS(hapticFeedback.light)();
-      })
-      .onUpdate((event) => {
-        // Only allow left swipe (negative values)
-        if (event.translationX < 0) {
-          translateX.value = Math.max(event.translationX, -100);
-          
-          // Provide haptic feedback at certain thresholds
-          if (event.translationX < -50 && translateX.value > -51) {
-            runOnJS(hapticFeedback.medium)();
-          }
-        }
-      })
-      .onEnd((event) => {
-        if (event.translationX < -80) {
-          // Swipe threshold reached - show action menu
-          runOnJS(hapticFeedback.heavy)();
-          runOnJS(() => {
-            toast.info('Swipe Actions', 'Edit, Delete, or View Details');
-          })();
-          
-          // Animate back to original position
-          translateX.value = withSpring(0);
-        } else {
-          // Return to original position
-          translateX.value = withSpring(0);
-        }
-      });
-
-    // Handle tap with haptic feedback
     const handlePress = () => {
-      hapticFeedback.light();
+      hapticFeedback.buttonPress();
       setExpandedTransaction(isExpanded ? null : tx.id);
     };
 
-    // Handle long press with haptic feedback
     const handleLongPress = () => {
-      hapticFeedback.heavy();
-      toast.info('Transaction Actions', 'Long press detected - showing options');
+      hapticFeedback.success();
+      toast.info('Transaction Details', `${tx.description} - $${tx.amount}`);
+    };
+
+    const handlePressIn = () => {
+      setPressedTransactions(prev => new Set(prev).add(tx.id));
+    };
+
+    const handlePressOut = () => {
+      setPressedTransactions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tx.id);
+        return newSet;
+      });
     };
 
     return (
-      <Animated.View key={tx.id} style={animatedStyle}>
-        <GestureDetector gesture={swipeGesture}>
-          <Animated.View style={swipeStyle}>
-            <TouchableOpacity
-              onPress={handlePress}
-              onLongPress={handleLongPress}
-              activeOpacity={0.7}
-            >
+      <View
+        key={tx.id}
+        animation="bouncy"
+        enterStyle={{
+          opacity: 0,
+          y: 50,
+          scale: 0.95,
+        }}
+        animateOnly={['opacity', 'transform']}
+        scale={isPressed ? 0.98 : 1}
+        marginBottom="$3"
+      >
+        <TouchableOpacity
+          onPress={handlePress}
+          onLongPress={handleLongPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={0.8}
+        >
+          <View
+            backgroundColor={transactionItemBg}
+            borderRadius="$5"
+            borderWidth={1}
+            borderColor={border}
+            padding="$4"
+            shadowColor="$shadowColor"
+            shadowOffset={{ width: 0, height: 1 }}
+            shadowOpacity={0.05}
+            shadowRadius={2}
+          >
+            <View flexDirection="row" alignItems="center" gap="$3">
+              {/* Icon */}
               <View
-                padding="$3"
-                borderRadius="$5"
-                backgroundColor={transactionItemBg}
-                borderWidth={1}
-                borderColor={isExpanded ? '#3B82F6' : 'transparent'}
-                marginBottom="$2"
-                shadowColor="$shadowColor"
-                shadowOffset={{ width: 0, height: 2 }}
-                shadowOpacity={0.1}
-                shadowRadius={4}
+                width={48}
+                height={48}
+                borderRadius="$6"
+                backgroundColor={iconData.bg}
+                alignItems="center"
+                justifyContent="center"
               >
-                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                  {/* Icon and main info */}
-                  <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
-                    <View
-                      padding="$2"
-                      backgroundColor={iconData.bg}
-                      borderRadius="$5"
-                      alignItems="center"
-                      justifyContent="center"
-                      position="relative"
+                <Ionicons
+                  name={iconData.icon as keyof typeof Ionicons.glyphMap}
+                  size={24}
+                  color={iconData.color}
+                />
+              </View>
+
+              {/* Transaction details */}
+              <View flex={1}>
+                <View flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+                  <View flex={1}>
+                    <Text
+                      fontSize="$4"
+                      fontWeight="600"
+                      color={text}
+                      numberOfLines={1}
                     >
-                      <Ionicons 
-                        name={iconData.icon as keyof typeof Ionicons.glyphMap} 
-                        size={18} 
-                        color={iconData.color} 
-                      />
-                      {/* Receipt indicator with pulse animation */}
-                      {tx.hasReceipt && (
-                        <View
-                          position="absolute"
-                          top={-4}
-                          right={-4}
-                          backgroundColor="#3B82F6"
-                          borderRadius="$6"
-                          width={8}
-                          height={8}
-                        />
-                      )}
+                      {tx.description}
+                    </Text>
+                    <Text
+                      fontSize="$3"
+                      color={subtext}
+                      marginTop="$1"
+                    >
+                      {tx.category}
+                    </Text>
+                  </View>
+
+                  {/* Amount and status */}
+                  <View alignItems="flex-end">
+                    <Text
+                      fontSize="$4"
+                      fontWeight="700"
+                      color={text}
+                    >
+                      ${tx.amount}
+                    </Text>
+                    <View
+                      backgroundColor={statusData.color}
+                      borderRadius="$2"
+                      paddingHorizontal="$2"
+                      paddingVertical="$1"
+                      marginTop="$1"
+                    >
+                      <Text
+                        fontSize="$1"
+                        color="white"
+                        fontWeight="600"
+                      >
+                        {statusData.text}
+                      </Text>
                     </View>
-                    
-                    <RNView style={{ flex: 1, gap: 4 }}>
-                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text fontSize="$4" fontWeight="600" color={text} flex={1}>
-                          {tx.description}
-                        </Text>
-                        {tx.isUnusual && (
-                          <View backgroundColor="#FED7AA" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
-                            <Text fontSize="$2" color="#EA580C" fontWeight="500">
-                              Unusual
-                            </Text>
-                          </View>
-                        )}
-                      </RNView>
-                      
-                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text fontSize="$3" color={subtext}>
-                          {tx.vendor || tx.category}
-                        </Text>
-                        <Text fontSize="$3" color={statusData.color}>
-                          {statusData.text}
-                        </Text>
-                      </RNView>
-                    </RNView>
-                  </RNView>
+                  </View>
+                </View>
 
-                  {/* Amount */}
-                  <RNView style={{ alignItems: 'flex-end', gap: 2 }}>
-                    <Text fontSize="$5" fontWeight="700" color={text}>
-                      ${tx.amount.toFixed(2)}
-                    </Text>
-                    <Text fontSize="$2" color={subtext}>
-                      {new Date(tx.date).toLocaleDateString()}
-                    </Text>
-                  </RNView>
-                </RNView>
-
-                {/* Expanded details with smooth animation */}
+                {/* Expanded details with Tamagui animation */}
                 {isExpanded && (
-                  <Animated.View
-                    entering={FadeInDown.duration(300)}
-                    exiting={FadeOutUp.duration(200)}
+                  <View
+                    marginTop="$3"
+                    paddingTop="$3"
+                    borderTopWidth={1}
+                    borderTopColor={border}
+                    animation="quick"
+                    enterStyle={{
+                      opacity: 0,
+                      height: 0,
+                    }}
+                    animateOnly={['opacity', 'height']}
                   >
-                    <RNView style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: border }}>
-                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text fontSize="$3" color={subtext}>Category:</Text>
-                        <Text fontSize="$3" color={text} fontWeight="500">{tx.category}</Text>
-                      </RNView>
-                      {tx.vendor && (
-                        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                          <Text fontSize="$3" color={subtext}>Vendor:</Text>
-                          <Text fontSize="$3" color={text} fontWeight="500">{tx.vendor}</Text>
-                        </RNView>
-                      )}
-                      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text fontSize="$3" color={subtext}>Date:</Text>
-                        <Text fontSize="$3" color={text} fontWeight="500">
-                          {new Date(tx.date).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
-                        </Text>
-                      </RNView>
-                    </RNView>
-                  </Animated.View>
+                    <View flexDirection="row" justifyContent="space-between" marginBottom="$2">
+                      <Text fontSize="$3" color={subtext}>Date:</Text>
+                      <Text fontSize="$3" color={text}>{new Date(tx.date).toLocaleDateString()}</Text>
+                    </View>
+                    <View flexDirection="row" justifyContent="space-between" marginBottom="$2">
+                      <Text fontSize="$3" color={subtext}>Time:</Text>
+                      <Text fontSize="$3" color={text}>{new Date(tx.date).toLocaleTimeString()}</Text>
+                    </View>
+                    {tx.notes && (
+                      <View marginTop="$2">
+                        <Text fontSize="$3" color={subtext} marginBottom="$1">Notes:</Text>
+                        <Text fontSize="$3" color={text}>{tx.notes}</Text>
+                      </View>
+                    )}
+                  </View>
                 )}
               </View>
-            </TouchableOpacity>
-          </Animated.View>
-        </GestureDetector>
-      </Animated.View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
     );
   };
 

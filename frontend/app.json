@@ -27,10 +27,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-dev-client",
-      "react-native-reanimated",
-      "react-native-gesture-handler",
-      "expo-haptics"
+      "expo-dev-client"
     ]
   }
 }

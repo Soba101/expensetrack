@@ -1,13 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  withTiming, 
-  runOnJS 
-} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Toast types
@@ -41,17 +34,14 @@ export const useToast = () => {
   return context;
 };
 
-// Individual Toast Component
+// Individual Toast Component with Tamagui animations
 const ToastItem: React.FC<{ 
   toast: ToastData; 
   onRemove: (id: string) => void;
 }> = ({ toast, onRemove }) => {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  
-  // Animation values
-  const translateY = useSharedValue(-100);
-  const opacity = useSharedValue(0);
+  const [isVisible, setIsVisible] = useState(true);
 
   // Toast colors based on type
   const getToastColors = (type: ToastType) => {
@@ -86,18 +76,8 @@ const ToastItem: React.FC<{
 
   const colors = getToastColors(toast.type);
 
-  // Animated styles
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-    opacity: opacity.value,
-  }));
-
-  // Show animation
+  // Auto-hide after duration
   React.useEffect(() => {
-    translateY.value = withSpring(0, { damping: 15, stiffness: 150 });
-    opacity.value = withTiming(1, { duration: 300 });
-
-    // Auto-hide after duration
     const timer = setTimeout(() => {
       hideToast();
     }, toast.duration || 4000);
@@ -107,24 +87,32 @@ const ToastItem: React.FC<{
 
   // Hide animation
   const hideToast = useCallback(() => {
-    translateY.value = withTiming(-100, { duration: 300 });
-    opacity.value = withTiming(0, { duration: 300 }, () => {
-      runOnJS(onRemove)(toast.id);
-    });
+    setIsVisible(false);
+    // Wait for animation to complete before removing
+    setTimeout(() => {
+      onRemove(toast.id);
+    }, 300);
   }, [toast.id, onRemove]);
 
+  if (!isVisible) return null;
+
   return (
-    <Animated.View
-      style={[
-        {
-          position: 'absolute',
-          top: insets.top + 10,
-          left: 16,
-          right: 16,
-          zIndex: 9999,
-        },
-        animatedStyle,
-      ]}
+    <View
+      position="absolute"
+      top={insets.top + 10}
+      left={16}
+      right={16}
+      zIndex={9999}
+      animation="quick"
+      enterStyle={{
+        opacity: 0,
+        y: -100,
+      }}
+      exitStyle={{
+        opacity: 0,
+        y: -100,
+      }}
+      animateOnly={['opacity', 'transform']}
     >
       <View
         backgroundColor={colors.bg}
@@ -162,7 +150,7 @@ const ToastItem: React.FC<{
           </View>
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 };
 

@@ -5,6 +5,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as expenseService from '../services/expenseService';
 import { processReceiptWithOCR, OCRExtractedData } from '../services/receiptService';
+import { useExpenseData } from '../context/ExpenseDataContext';
 
 const { width } = Dimensions.get('window');
 
@@ -45,6 +46,9 @@ interface RouteParams {
 const AddEditExpenseScreen: React.FC = () => {
   const route = useRoute();
   const navigation = useNavigation();
+  
+  // Get expense data context for updating cards
+  const { addExpense } = useExpenseData();
   
   // Get route parameters
   const params = route.params as RouteParams;
@@ -198,7 +202,11 @@ const AddEditExpenseScreen: React.FC = () => {
         receiptImage: receiptData?.image || undefined,
       };
 
-      await expenseService.saveExpense(expenseData);
+      // Save expense to backend
+      const savedExpense = await expenseService.saveExpense(expenseData);
+      
+      // Update context to refresh all cards automatically
+      addExpense(savedExpense);
       
       console.log('Expense Saved: Your expense has been recorded successfully.');
 

@@ -7,6 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as expenseService from '../services/expenseService';
 import { hapticFeedback } from '../utils/haptics';
 import { useToast } from '../components/Toast';
+import { useExpenseData } from '../context/ExpenseDataContext';
 
 // Define the navigation stack type
 type RootStackParamList = {
@@ -36,10 +37,10 @@ interface Expense {
 const ExpensesListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
-  // State management
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Use centralized data context instead of local state
+  const { expenses, loading, refreshing, refreshData } = useExpenseData();
+
+  // State management for UI only
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('date'); // date, amount, description
@@ -54,41 +55,17 @@ const ExpensesListScreen: React.FC = () => {
   const text = theme.color.val;
   const subtext = theme.colorHover.val;
 
-  // Load expenses from backend
-  const loadExpenses = async (showLoading = true) => {
-    try {
-      console.log('loadExpenses called, showLoading:', showLoading);
-      if (showLoading) {
-        console.log('Setting loading to true');
-        setLoading(true);
-      }
-      
-      console.log('Calling expenseService.getExpenses()...');
-      const data = await expenseService.getExpenses();
-      console.log('Expenses loaded successfully:', data.length, 'expenses');
-      setExpenses(data);
-    } catch (error: any) {
-      console.error('Failed to load expenses:', error);
-      console.log('Error: Failed to load expenses -', error.message || 'Unknown error');
-    } finally {
-      console.log('loadExpenses finished, setting loading to false');
-      if (showLoading) setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Load expenses when screen comes into focus
+  // Load expenses when screen comes into focus using context
   useFocusEffect(
     React.useCallback(() => {
-      loadExpenses();
-    }, [])
+      refreshData();
+    }, [refreshData])
   );
 
   // Handle pull-to-refresh with haptic feedback
   const onRefresh = () => {
     hapticFeedback.pullToRefresh(); // Add haptic feedback
-    setRefreshing(true);
-    loadExpenses(false);
+    refreshData();
   };
 
   // Get unique categories from expenses for filter dropdown

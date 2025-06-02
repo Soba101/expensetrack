@@ -1,13 +1,5 @@
 import React from 'react';
 import { View, useTheme } from '@tamagui/core';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withRepeat, 
-  withTiming,
-  interpolate,
-  Easing
-} from 'react-native-reanimated';
 
 interface SkeletonProps {
   width?: number | string;
@@ -16,7 +8,7 @@ interface SkeletonProps {
   marginBottom?: number;
 }
 
-// Individual skeleton item with shimmer animation
+// Individual skeleton item with shimmer animation using Tamagui
 const SkeletonItem: React.FC<SkeletonProps> = ({ 
   width = '100%', 
   height = 20, 
@@ -24,32 +16,6 @@ const SkeletonItem: React.FC<SkeletonProps> = ({
   marginBottom = 8 
 }) => {
   const theme = useTheme();
-  const shimmer = useSharedValue(0);
-
-  // Shimmer animation
-  React.useEffect(() => {
-    shimmer.value = withRepeat(
-      withTiming(1, { 
-        duration: 1500, 
-        easing: Easing.inOut(Easing.ease) 
-      }),
-      -1,
-      false
-    );
-  }, []);
-
-  // Animated shimmer style
-  const animatedStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(
-      shimmer.value,
-      [0, 0.5, 1],
-      [0.3, 0.7, 0.3]
-    );
-
-    return {
-      opacity,
-    };
-  });
 
   return (
     <View
@@ -59,16 +25,25 @@ const SkeletonItem: React.FC<SkeletonProps> = ({
       backgroundColor={theme.color3?.val || '#E5E7EB'}
       marginBottom={marginBottom}
       overflow="hidden"
+      position="relative"
     >
-      <Animated.View
-        style={[
-          {
-            width: '100%',
-            height: '100%',
-            backgroundColor: theme.color6?.val || '#F3F4F6',
-          },
-          animatedStyle,
-        ]}
+      {/* Shimmer overlay using Tamagui animation */}
+      <View
+        position="absolute"
+        top={0}
+        left={0}
+        right={0}
+        bottom={0}
+        backgroundColor={theme.color6?.val || '#F3F4F6'}
+        animation="lazy"
+        opacity={0.3}
+        animateOnly={['opacity']}
+        // Continuous shimmer effect
+        style={{
+          animationDuration: '1500ms',
+          animationIterationCount: 'infinite',
+          animationDirection: 'alternate',
+        }}
       />
     </View>
   );

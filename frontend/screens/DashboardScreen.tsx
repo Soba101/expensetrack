@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView } from 'react-native';
-import { View, useTheme } from '@tamagui/core';
+import { ScrollView, RefreshControl } from 'react-native';
+import { View, useTheme, Text } from '@tamagui/core';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ExpenseSummary from '../components/ExpenseSummary';
@@ -35,7 +35,7 @@ const DashboardScreen: React.FC = () => {
   const toast = useToast();
   
   // Get refresh function from expense data context
-  const { refreshData } = useExpenseData();
+  const { refreshData, loading, error, refreshing } = useExpenseData();
   
   // State for upload loading
   const [isUploading, setIsUploading] = useState(false);
@@ -45,7 +45,7 @@ const DashboardScreen: React.FC = () => {
     React.useCallback(() => {
       console.log('🔄 Dashboard focused - refreshing data...');
       refreshData();
-    }, []) // Remove refreshData from dependencies to prevent infinite loop
+    }, []) // Empty dependency array to prevent infinite loop
   );
 
   // Function to pick an image from the library and upload it
@@ -132,7 +132,7 @@ const DashboardScreen: React.FC = () => {
   };
 
   return (
-    // Using React Native ScrollView with Tamagui styling
+    // Using React Native ScrollView with Tamagui styling and pull-to-refresh
     <ScrollView 
       style={{ 
         flex: 1, 
@@ -140,7 +140,35 @@ const DashboardScreen: React.FC = () => {
         padding: 16, 
         paddingTop: 64 
       }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={refreshData}
+          tintColor={theme.color.val}
+          title="Pull to refresh"
+          titleColor={theme.color.val}
+        />
+      }
     >
+      {/* Show error state if data failed to load */}
+      {error && (
+        <View 
+          padding="$4" 
+          borderRadius="$5" 
+          backgroundColor="#FEF2F2" 
+          borderWidth={1}
+          borderColor="#FECACA"
+          marginBottom="$4"
+        >
+          <Text color="#DC2626" fontWeight="600" marginBottom="$2">
+            ⚠️ Data Loading Error
+          </Text>
+          <Text color="#DC2626" fontSize="$3">
+            {error}
+          </Text>
+        </View>
+      )}
+
       <View gap="$4">
         {/* User info at the top */}
         <UserInfo />
