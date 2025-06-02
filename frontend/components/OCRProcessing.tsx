@@ -1,17 +1,6 @@
 import React, { useState } from 'react';
-import {
-  VStack,
-  HStack,
-  Text,
-  Button,
-  Box,
-  Alert,
-  Spinner,
-  Badge,
-  Divider,
-  useColorModeValue,
-  useToast,
-} from 'native-base';
+import { View as RNView, TouchableOpacity } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 import { processReceiptWithOCR, OCRExtractedData } from '../services/receiptService';
 
 interface OCRProcessingProps {
@@ -29,9 +18,10 @@ export const OCRProcessing: React.FC<OCRProcessingProps> = ({
   const [extractedData, setExtractedData] = useState<OCRExtractedData | null>(null);
   const [showResults, setShowResults] = useState(false);
   
-  const toast = useToast();
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.600');
+  // Use Tamagui theme system instead of Native Base
+  const theme = useTheme();
+  const bgColor = theme.backgroundHover.val;
+  const borderColor = theme.borderColor.val;
 
   const handleProcessReceipt = async () => {
     setIsProcessing(true);
@@ -40,12 +30,8 @@ export const OCRProcessing: React.FC<OCRProcessingProps> = ({
     try {
       console.log('🔍 Starting OCR processing...');
       
-      // Show processing toast
-      toast.show({
-        title: "Processing Receipt",
-        description: "Extracting data from your receipt...",
-        duration: 2000,
-      });
+      // Show processing message
+      console.log('Processing Receipt: Extracting data from your receipt...');
 
       // Process receipt with OCR
       const result = await processReceiptWithOCR(receiptId);
@@ -54,23 +40,15 @@ export const OCRProcessing: React.FC<OCRProcessingProps> = ({
       setExtractedData(result.extractedData);
       setShowResults(true);
       
-      // Show success toast
-      toast.show({
-        title: "🎉 Processing Complete!",
-        description: "Receipt data extracted successfully",
-        duration: 3000,
-      });
+      // Show success message
+      console.log('🎉 Processing Complete! Receipt data extracted successfully');
 
     } catch (error) {
       console.error('❌ OCR processing failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'OCR processing failed';
       
-      // Show error toast
-      toast.show({
-        title: "❌ Processing Failed",
-        description: errorMessage,
-        duration: 4000,
-      });
+      // Show error message
+      console.log('❌ Processing Failed:', errorMessage);
       
       onError(errorMessage);
     } finally {
@@ -86,197 +64,225 @@ export const OCRProcessing: React.FC<OCRProcessingProps> = ({
 
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 0.8) {
-      return <Badge colorScheme="green" variant="solid">High</Badge>;
+      return (
+        <View backgroundColor="#10B981" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+          <Text fontSize="$2" color="white" fontWeight="600">High</Text>
+        </View>
+      );
     } else if (confidence >= 0.6) {
-      return <Badge colorScheme="yellow" variant="solid">Medium</Badge>;
+      return (
+        <View backgroundColor="#F59E0B" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+          <Text fontSize="$2" color="white" fontWeight="600">Medium</Text>
+        </View>
+      );
     } else {
-      return <Badge colorScheme="red" variant="solid">Low</Badge>;
+      return (
+        <View backgroundColor="#EF4444" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+          <Text fontSize="$2" color="white" fontWeight="600">Low</Text>
+        </View>
+      );
     }
   };
 
   return (
-    <Box
-      bg={bgColor}
-      borderRadius={20}
-      shadow={2}
-      p={4}
+    <View
+      backgroundColor={bgColor}
+      borderRadius="$6"
+      padding="$4"
       borderWidth={1}
       borderColor={borderColor}
     >
-      <VStack space={4}>
+      <RNView style={{ gap: 16 }}>
         {/* Header */}
-        <HStack justifyContent="space-between" alignItems="center">
-          <Text fontSize="lg" fontWeight="bold">
+        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Text fontSize="$5" fontWeight="bold" color={theme.color.val}>
             🔍 Smart Receipt Processing
           </Text>
           {!showResults && (
-            <Button
+            <TouchableOpacity
               onPress={handleProcessReceipt}
-              isLoading={isProcessing}
-              isDisabled={isProcessing}
-              colorScheme="blue"
-              size="sm"
-              borderRadius={15}
+              disabled={isProcessing}
+              style={{
+                backgroundColor: '#3B82F6',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 8,
+              }}
             >
-              {isProcessing ? 'Processing...' : 'Extract Data'}
-            </Button>
+              <Text color="white" fontSize="$3" fontWeight="600">
+                {isProcessing ? 'Processing...' : 'Extract Data'}
+              </Text>
+            </TouchableOpacity>
           )}
-        </HStack>
+        </RNView>
 
         {/* Processing State */}
         {isProcessing && (
-          <Box bg="blue.50" p={4} borderRadius={15} borderWidth={1} borderColor="blue.200">
-            <VStack space={3}>
-              <HStack space={2} alignItems="center">
-                <Text fontSize="lg">ℹ️</Text>
-                <Text fontSize="md" fontWeight="bold" color="blue.700">
+          <View backgroundColor="#EBF8FF" padding="$4" borderRadius="$4" borderWidth={1} borderColor="#BEE3F8">
+            <RNView style={{ gap: 12 }}>
+              <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text fontSize="$5">ℹ️</Text>
+                <Text fontSize="$4" fontWeight="bold" color="#2B6CB0">
                   Processing Receipt
                 </Text>
-              </HStack>
-              <Text fontSize="sm" color="blue.600">
+              </RNView>
+              <Text fontSize="$3" color="#2C5282">
                 Using AI to extract amount, date, and vendor information...
               </Text>
-              <HStack space={2} alignItems="center">
-                <Spinner size="sm" color="blue.500" />
-                <Text fontSize="sm" color="blue.600">
+              <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text color="#2C5282">⏳</Text>
+                <Text fontSize="$3" color="#2C5282">
                   This may take a few seconds
                 </Text>
-              </HStack>
-            </VStack>
-          </Box>
+              </RNView>
+            </RNView>
+          </View>
         )}
 
         {/* Results Display */}
         {showResults && extractedData && (
-          <VStack space={4}>
-            <Box bg="green.50" p={4} borderRadius={15} borderWidth={1} borderColor="green.200">
-              <VStack space={2}>
-                <HStack space={2} alignItems="center">
-                  <Text fontSize="lg">✅</Text>
-                  <Text fontSize="md" fontWeight="bold" color="green.700">
+          <RNView style={{ gap: 16 }}>
+            <View backgroundColor="#F0FDF4" padding="$4" borderRadius="$4" borderWidth={1} borderColor="#BBF7D0">
+              <RNView style={{ gap: 8 }}>
+                <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text fontSize="$5">✅</Text>
+                  <Text fontSize="$4" fontWeight="bold" color="#15803D">
                     Data Extracted Successfully!
                   </Text>
-                </HStack>
-                <Text fontSize="sm" color="green.600">
+                </RNView>
+                <Text fontSize="$3" color="#166534">
                   Review the extracted information below and use it to fill your expense form.
                 </Text>
-              </VStack>
-            </Box>
+              </RNView>
+            </View>
 
             {/* Extracted Data Display */}
-            <VStack space={3} bg="gray.50" p={4} borderRadius={15}>
-              <Text fontSize="md" fontWeight="bold" color="gray.700">
-                📄 Extracted Information
-              </Text>
+            <View backgroundColor="#F9FAFB" padding="$4" borderRadius="$4">
+              <RNView style={{ gap: 12 }}>
+                <Text fontSize="$4" fontWeight="bold" color="#374151">
+                  📄 Extracted Information
+                </Text>
 
-              {/* Amount */}
-              {extractedData.amount && (
-                <HStack justifyContent="space-between" alignItems="center">
-                  <VStack flex={1}>
-                    <Text fontSize="sm" color="gray.600">Amount</Text>
-                    <Text fontSize="lg" fontWeight="bold" color="green.600">
-                      ${extractedData.amount.toFixed(2)}
-                    </Text>
-                  </VStack>
-                  {getConfidenceBadge(extractedData.confidence.amount)}
-                </HStack>
-              )}
+                {/* Amount */}
+                {extractedData.amount && (
+                  <>
+                    <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <RNView style={{ flex: 1 }}>
+                        <Text fontSize="$3" color="#6B7280">Amount</Text>
+                        <Text fontSize="$5" fontWeight="bold" color="#059669">
+                          ${extractedData.amount.toFixed(2)}
+                        </Text>
+                      </RNView>
+                      {getConfidenceBadge(extractedData.confidence.amount)}
+                    </RNView>
+                    <View height={1} backgroundColor="#E5E7EB" />
+                  </>
+                )}
 
-              <Divider />
+                {/* Date */}
+                {extractedData.date && (
+                  <>
+                    <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <RNView style={{ flex: 1 }}>
+                        <Text fontSize="$3" color="#6B7280">Date</Text>
+                        <Text fontSize="$4" fontWeight="600" color={theme.color.val}>
+                          {new Date(extractedData.date).toLocaleDateString()}
+                        </Text>
+                      </RNView>
+                      {getConfidenceBadge(extractedData.confidence.date)}
+                    </RNView>
+                    <View height={1} backgroundColor="#E5E7EB" />
+                  </>
+                )}
 
-              {/* Date */}
-              {extractedData.date && (
-                <HStack justifyContent="space-between" alignItems="center">
-                  <VStack flex={1}>
-                    <Text fontSize="sm" color="gray.600">Date</Text>
-                    <Text fontSize="md" fontWeight="semibold">
-                      {new Date(extractedData.date).toLocaleDateString()}
-                    </Text>
-                  </VStack>
-                  {getConfidenceBadge(extractedData.confidence.date)}
-                </HStack>
-              )}
+                {/* Vendor */}
+                {extractedData.vendor && (
+                  <>
+                    <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <RNView style={{ flex: 1 }}>
+                        <Text fontSize="$3" color="#6B7280">Vendor</Text>
+                        <Text fontSize="$4" fontWeight="600" color={theme.color.val}>
+                          {extractedData.vendor}
+                        </Text>
+                      </RNView>
+                      {getConfidenceBadge(extractedData.confidence.vendor)}
+                    </RNView>
+                    <View height={1} backgroundColor="#E5E7EB" />
+                  </>
+                )}
 
-              <Divider />
-
-              {/* Vendor */}
-              {extractedData.vendor && (
-                <HStack justifyContent="space-between" alignItems="center">
-                  <VStack flex={1}>
-                    <Text fontSize="sm" color="gray.600">Vendor</Text>
-                    <Text fontSize="md" fontWeight="semibold">
-                      {extractedData.vendor}
-                    </Text>
-                  </VStack>
-                  {getConfidenceBadge(extractedData.confidence.vendor)}
-                </HStack>
-              )}
-
-              <Divider />
-
-              {/* Category */}
-              {extractedData.category && (
-                <HStack justifyContent="space-between" alignItems="center">
-                  <VStack flex={1}>
-                    <Text fontSize="sm" color="gray.600">Suggested Category</Text>
-                    <Text fontSize="md" fontWeight="semibold" color="blue.600">
-                      {extractedData.category}
-                    </Text>
-                  </VStack>
-                  <Badge colorScheme="blue" variant="outline">Auto</Badge>
-                </HStack>
-              )}
-            </VStack>
+                {/* Category */}
+                {extractedData.category && (
+                  <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <RNView style={{ flex: 1 }}>
+                      <Text fontSize="$3" color="#6B7280">Suggested Category</Text>
+                      <Text fontSize="$4" fontWeight="600" color="#2563EB">
+                        {extractedData.category}
+                      </Text>
+                    </RNView>
+                    <View backgroundColor="#DBEAFE" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2" borderWidth={1} borderColor="#3B82F6">
+                      <Text fontSize="$2" color="#1D4ED8" fontWeight="600">Auto</Text>
+                    </View>
+                  </RNView>
+                )}
+              </RNView>
+            </View>
 
             {/* Action Buttons */}
-            <HStack space={3} justifyContent="center">
-              <Button
-                onPress={handleUseExtractedData}
-                colorScheme="green"
-                size="lg"
-                borderRadius={20}
-                flex={1}
-                leftIcon={<Text>✨</Text>}
-              >
-                Use This Data
-              </Button>
-              <Button
-                onPress={() => setShowResults(false)}
-                variant="outline"
-                colorScheme="gray"
-                size="lg"
-                borderRadius={20}
-                flex={1}
-              >
-                Try Again
-              </Button>
-            </HStack>
+            <RNView style={{ flexDirection: 'row', gap: 12, justifyContent: 'center' }}>
+              <TouchableOpacity onPress={handleUseExtractedData} style={{ flex: 1 }}>
+                <View
+                  backgroundColor="#10B981"
+                  padding="$4"
+                  borderRadius="$6"
+                  alignItems="center"
+                >
+                  <Text color="white" fontSize="$4" fontWeight="600">
+                    ✨ Use This Data
+                  </Text>
+                </View>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setShowResults(false)} style={{ flex: 1 }}>
+                <View
+                  backgroundColor="transparent"
+                  borderWidth={1}
+                  borderColor="#6B7280"
+                  padding="$4"
+                  borderRadius="$6"
+                  alignItems="center"
+                >
+                  <Text color="#6B7280" fontSize="$4" fontWeight="600">
+                    Try Again
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </RNView>
 
             {/* Confidence Info */}
-            <Box bg="blue.50" p={3} borderRadius={10}>
-              <Text fontSize="xs" color="blue.700" textAlign="center">
+            <View backgroundColor="#EBF8FF" padding="$3" borderRadius="$3">
+              <Text fontSize="$2" color="#1E40AF" textAlign="center">
                 💡 Confidence levels indicate how sure we are about each field. 
                 You can always edit the information in the expense form.
               </Text>
-            </Box>
-          </VStack>
+            </View>
+          </RNView>
         )}
 
         {/* Initial State */}
         {!isProcessing && !showResults && (
-          <Box bg="gray.50" p={4} borderRadius={15}>
-            <VStack space={2} alignItems="center">
-              <Text fontSize="2xl">🤖</Text>
-              <Text fontSize="md" fontWeight="semibold" textAlign="center">
+          <View backgroundColor="#F9FAFB" padding="$4" borderRadius="$4">
+            <RNView style={{ gap: 8, alignItems: 'center' }}>
+              <Text fontSize="$8">🤖</Text>
+              <Text fontSize="$4" fontWeight="600" textAlign="center" color={theme.color.val}>
                 Smart Receipt Processing
               </Text>
-              <Text fontSize="sm" color="gray.600" textAlign="center">
+              <Text fontSize="$3" color="#6B7280" textAlign="center">
                 Let AI extract amount, date, vendor, and category from your receipt automatically.
               </Text>
-            </VStack>
-          </Box>
+            </RNView>
+          </View>
         )}
-      </VStack>
-    </Box>
+      </RNView>
+    </View>
   );
 }; 

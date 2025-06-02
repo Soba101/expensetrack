@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { ScrollView, useColorModeValue, Button, HStack, Box, useToast } from 'native-base';
+import { ScrollView } from 'react-native';
+import { View, useTheme } from '@tamagui/core';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ExpenseSummary from '../components/ExpenseSummary';
 import RecentTransactions from '../components/RecentTransactions';
-
 import QuickActions from '../components/QuickActions';
 import UserInfo from '../components/UserInfo';
 import SmartInsights from '../components/SmartInsights';
@@ -12,12 +12,25 @@ import * as ImagePicker from 'expo-image-picker';
 import * as receiptService from '../services/receiptService';
 import { useExpenseData } from '../context/ExpenseDataContext';
 
+// Custom toast hook for Tamagui (temporary implementation)
+const useToast = () => {
+  return {
+    show: ({ title, description, duration }: { title: string; description: string; duration: number }) => {
+      // For now, we'll use console.log - we'll implement proper toast later
+      console.log(`Toast: ${title} - ${description}`);
+    }
+  };
+};
+
 // DashboardScreen: Shows an overview of expenses and quick stats using modular components
 const DashboardScreen: React.FC = () => {
-  const bg = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
-  const heading = useColorModeValue('gray.900', 'gray.100');
+  // Using Tamagui theme instead of useColorModeValue
+  const theme = useTheme();
+  const bg = theme.background.val;
+  const cardBg = theme.backgroundHover.val;
+  const border = theme.borderColor.val;
+  const heading = theme.color.val;
+  
   const navigation = useNavigation();
   const toast = useToast();
   
@@ -119,18 +132,27 @@ const DashboardScreen: React.FC = () => {
   };
 
   return (
-    // Apple-style: Add extra top padding for visual comfort and prevent card from hitting top
-    <ScrollView flex={1} bg={bg} p={4} pt={16}>
-      {/* User info at the top */}
-      <UserInfo />
-      {/* Quick actions for adding expenses or uploading receipts */}
-      <QuickActions onUploadPress={pickImage} isUploading={isUploading} />
-      {/* Expense summary section with enhanced design */}
-      <ExpenseSummary />
-      {/* Smart insights with personalized recommendations */}
-      <SmartInsights />
-      {/* Recent transactions list */}
-      <RecentTransactions />
+    // Using React Native ScrollView with Tamagui styling
+    <ScrollView 
+      style={{ 
+        flex: 1, 
+        backgroundColor: bg, 
+        padding: 16, 
+        paddingTop: 64 
+      }}
+    >
+      <View gap="$4">
+        {/* User info at the top */}
+        <UserInfo />
+        {/* Quick actions for adding expenses or uploading receipts */}
+        <QuickActions onUploadPress={pickImage} isUploading={isUploading} />
+        {/* Expense summary section with enhanced design */}
+        <ExpenseSummary />
+        {/* Smart insights with personalized recommendations */}
+        <SmartInsights />
+        {/* Recent transactions list */}
+        <RecentTransactions />
+      </View>
     </ScrollView>
   );
 };

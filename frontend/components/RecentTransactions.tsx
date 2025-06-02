@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Box, Text, VStack, HStack, useColorModeValue, Button, Pressable, Icon, Badge, Divider, Spinner } from 'native-base';
+import { View as RNView, TouchableOpacity } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -25,16 +26,15 @@ const RecentTransactions = () => {
   // Use centralized data context
   const { recentTransactions: transactions, loading } = useExpenseData();
 
-  // Use theme-aware colors - MOVED TO TOP to fix hooks order
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
-  const heading = useColorModeValue('gray.900', 'gray.100');
-  const text = useColorModeValue('gray.800', 'gray.200');
-  const subtext = useColorModeValue('gray.600', 'gray.400');
-  const sectionHeaderBg = useColorModeValue('gray.50', 'gray.700');
-  const transactionItemBg = useColorModeValue('gray.50', 'gray.700');
-
-  // Data loading is now handled by ExpenseDataContext
+  // Using Tamagui theme instead of useColorModeValue - following migration guide Pattern 2
+  const theme = useTheme();
+  const cardBg = theme.backgroundHover.val;
+  const border = theme.borderColor.val;
+  const heading = theme.color.val;
+  const text = theme.color.val;
+  const subtext = theme.color11?.val || '#64748B';
+  const sectionHeaderBg = theme.backgroundHover.val;
+  const transactionItemBg = theme.background.val;
 
   // Group transactions by date
   const groupTransactionsByDate = (transactions: any[]) => {
@@ -101,11 +101,11 @@ const RecentTransactions = () => {
   const getStatusIndicator = (status: string) => {
     switch (status) {
       case 'pending':
-        return { color: 'orange.500', text: 'Pending' };
+        return { color: '#F59E0B', text: 'Pending' };
       case 'completed':
-        return { color: 'green.500', text: 'Completed' };
+        return { color: '#10B981', text: 'Completed' };
       default:
-        return { color: 'gray.500', text: 'Unknown' };
+        return { color: '#6B7280', text: 'Unknown' };
     }
   };
 
@@ -114,49 +114,47 @@ const RecentTransactions = () => {
   // Show loading state
   if (loading) {
     return (
-      <Box 
-        p={6} 
-        borderRadius={20} 
-        bg={cardBg} 
-        shadow={2}
+      <View 
+        padding="$6" 
+        borderRadius="$6" 
+        backgroundColor={cardBg} 
         borderWidth={1}
         borderColor={border}
-        mb={6}
+        marginBottom="$6"
         alignItems="center"
         justifyContent="center"
-        minH={200}
+        minHeight={200}
       >
-        <Spinner size="lg" color="blue.500" />
-        <Text mt={4} color={subtext}>
+        <Text color="#3B82F6">Loading...</Text>
+        <Text marginTop="$4" color={subtext}>
           Loading recent transactions...
         </Text>
-      </Box>
+      </View>
     );
   }
 
   // Show empty state if no transactions
   if (transactions.length === 0) {
     return (
-      <Box 
-        p={6} 
-        borderRadius={20} 
-        bg={cardBg} 
-        shadow={2}
+      <View 
+        padding="$6" 
+        borderRadius="$6" 
+        backgroundColor={cardBg} 
         borderWidth={1}
         borderColor={border}
-        mb={6}
+        marginBottom="$6"
         alignItems="center"
         justifyContent="center"
-        minH={200}
+        minHeight={200}
       >
-        <Icon as={Ionicons} name="receipt-outline" size="xl" color={subtext} />
-        <Text mt={4} color={subtext} textAlign="center" fontSize="md">
+        <Ionicons name="receipt-outline" size={40} color={subtext} />
+        <Text marginTop="$4" color={subtext} textAlign="center" fontSize="$4">
           No transactions yet
         </Text>
-        <Text mt={2} color={subtext} textAlign="center" fontSize="sm">
+        <Text marginTop="$2" color={subtext} textAlign="center" fontSize="$3">
           Start by adding your first expense
         </Text>
-      </Box>
+      </View>
     );
   }
 
@@ -167,7 +165,7 @@ const RecentTransactions = () => {
     const isExpanded = expandedTransaction === tx.id;
 
     return (
-      <Pressable
+      <TouchableOpacity
         key={tx.id}
         onPress={() => setExpandedTransaction(isExpanded ? null : tx.id)}
         onLongPress={() => {
@@ -175,21 +173,21 @@ const RecentTransactions = () => {
           console.log('Long press on transaction:', tx.id);
         }}
       >
-        <Box
-          p={3}
-          borderRadius={20}
-          bg={transactionItemBg}
+        <View
+          padding="$3"
+          borderRadius="$5"
+          backgroundColor={transactionItemBg}
           borderWidth={1}
-          borderColor={isExpanded ? 'blue.300' : 'transparent'}
-          mb={2}
+          borderColor={isExpanded ? '#3B82F6' : 'transparent'}
+          marginBottom="$2"
         >
-          <HStack justifyContent="space-between" alignItems="center" space={3}>
+          <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
             {/* Icon and main info */}
-            <HStack alignItems="center" space={3} flex={1}>
-              <Box
-                p={2}
-                bg={iconData.bg}
-                borderRadius={20}
+            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+              <View
+                padding="$2"
+                backgroundColor={iconData.bg}
+                borderRadius="$5"
                 alignItems="center"
                 justifyContent="center"
                 position="relative"
@@ -201,67 +199,70 @@ const RecentTransactions = () => {
                 />
                 {/* Receipt indicator */}
                 {tx.hasReceipt && (
-                  <Box
+                  <View
                     position="absolute"
-                    top={-1}
-                    right={-1}
-                    bg="blue.500"
-                    borderRadius="full"
-                    size={2}
+                    top={-4}
+                    right={-4}
+                    backgroundColor="#3B82F6"
+                    borderRadius="$6"
+                    width={8}
+                    height={8}
                   />
                 )}
-              </Box>
+              </View>
               
-              <VStack flex={1} space={0}>
-                <HStack justifyContent="space-between" alignItems="center">
-                  <Text fontSize="md" fontWeight="600" color={text} flex={1}>
+              <RNView style={{ flex: 1, gap: 4 }}>
+                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text fontSize="$4" fontWeight="600" color={text} flex={1}>
                     {tx.description}
                   </Text>
                   {tx.isUnusual && (
-                    <Badge colorScheme="orange" variant="subtle" size="sm">
-                      Unusual
-                    </Badge>
+                    <View backgroundColor="#FED7AA" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+                      <Text fontSize="$2" color="#EA580C" fontWeight="500">
+                        Unusual
+                      </Text>
+                    </View>
                   )}
-                </HStack>
+                </RNView>
                 
-                <HStack justifyContent="space-between" alignItems="center" mt={1}>
-                  <Text fontSize="sm" color={subtext}>
+                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text fontSize="$3" color={subtext}>
                     {tx.vendor || tx.category}
                   </Text>
-                  <Text fontSize="sm" color={statusData.color}>
+                  <Text fontSize="$3" color={statusData.color}>
                     {statusData.text}
                   </Text>
-                </HStack>
-              </VStack>
-            </HStack>
+                </RNView>
+              </RNView>
+            </RNView>
 
             {/* Amount */}
-            <VStack alignItems="flex-end" space={0}>
-              <Text fontSize="lg" fontWeight="700" color={text}>
+            <RNView style={{ alignItems: 'flex-end', gap: 2 }}>
+              <Text fontSize="$5" fontWeight="700" color={text}>
                 ${tx.amount.toFixed(2)}
               </Text>
-              <Text fontSize="xs" color={subtext}>
+              <Text fontSize="$2" color={subtext}>
                 {new Date(tx.date).toLocaleDateString()}
               </Text>
-            </VStack>
-          </HStack>
+            </RNView>
+          </RNView>
 
           {/* Expanded details */}
           {isExpanded && (
-            <VStack space={2} mt={3} pt={3} borderTopWidth={1} borderTopColor={border}>
-              <HStack justifyContent="space-between">
-                <Text fontSize="sm" color={subtext}>Category:</Text>
-                <Text fontSize="sm" color={text} fontWeight="medium">{tx.category}</Text>
-              </HStack>
+            <RNView style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: border }}>
+              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text fontSize="$3" color={subtext}>Category:</Text>
+                <Text fontSize="$3" color={text} fontWeight="500">{tx.category}</Text>
+              </RNView>
               {tx.vendor && (
-                <HStack justifyContent="space-between">
-                  <Text fontSize="sm" color={subtext}>Vendor:</Text>
-                  <Text fontSize="sm" color={text} fontWeight="medium">{tx.vendor}</Text>
-                </HStack>
+                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                  <Text fontSize="$3" color={subtext}>Vendor:</Text>
+                  <Text fontSize="$3" color={text} fontWeight="500">{tx.vendor}</Text>
+                </RNView>
               )}
-              <HStack justifyContent="space-between">
-                <Text fontSize="sm" color={subtext}>Date:</Text>
-                <Text fontSize="sm" color={text} fontWeight="medium">
+              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                <Text fontSize="$3" color={subtext}>Date:</Text>
+                <Text fontSize="$3" color={text} fontWeight="500">
                   {new Date(tx.date).toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     year: 'numeric', 
@@ -269,11 +270,11 @@ const RecentTransactions = () => {
                     day: 'numeric' 
                   })}
                 </Text>
-              </HStack>
-            </VStack>
+              </RNView>
+            </RNView>
           )}
-        </Box>
-      </Pressable>
+        </View>
+      </TouchableOpacity>
     );
   };
 
@@ -283,79 +284,84 @@ const RecentTransactions = () => {
       if (transactions.length === 0) return null;
 
       return (
-        <VStack key={groupName} space={2} mb={4}>
-          <Text fontSize="xs" fontWeight="bold" color={subtext} textTransform="uppercase">
+        <RNView key={groupName} style={{ gap: 8, marginBottom: 16 }}>
+          <Text fontSize="$2" fontWeight="700" color={subtext} textTransform="uppercase">
             {groupName}
           </Text>
           {transactions.map(renderTransaction)}
-        </VStack>
+        </RNView>
       );
     });
   };
 
   return (
-    <Box 
-      p={5} 
+    <View 
+      padding="$5" 
       borderWidth={1} 
-      borderRadius={20} 
-      mb={6} 
-      bg={cardBg} 
-      borderColor={border} 
-      shadow={2}
+      borderRadius="$6" 
+      marginBottom="$6" 
+      backgroundColor={cardBg} 
+      borderColor={border}
     >
       {/* Enhanced header with insights */}
-      <HStack justifyContent="space-between" alignItems="center" mb={4}>
-        <VStack>
-          <Text fontSize="lg" fontWeight="bold" color={heading}>
+      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <RNView>
+          <Text fontSize="$5" fontWeight="700" color={heading}>
             Recent Transactions
           </Text>
           {transactions.some(tx => tx.isUnusual) && (
-            <HStack alignItems="center" space={1}>
-              <Icon as={Ionicons} name="alert-circle" size="xs" color="orange.500" />
-              <Text fontSize="xs" color="orange.500">
+            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="alert-circle" size={12} color="#F59E0B" />
+              <Text fontSize="$2" color="#F59E0B">
                 Unusual spending detected
               </Text>
-            </HStack>
+            </RNView>
           )}
-        </VStack>
+        </RNView>
         
         {transactions.length > 5 && (
-          <Pressable onPress={() => setShowAll(!showAll)}>
-            <HStack alignItems="center" space={1}>
-              <Text fontSize="sm" color="blue.500" fontWeight="medium">
+          <TouchableOpacity onPress={() => setShowAll(!showAll)}>
+            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text fontSize="$3" color="#3B82F6" fontWeight="500">
                 {showAll ? 'Show Less' : `+${transactions.length - 5} more`}
               </Text>
-              <Icon 
-                as={Ionicons} 
+              <Ionicons 
                 name={showAll ? 'chevron-up' : 'chevron-down'} 
-                size="xs" 
-                color="blue.500" 
+                size={12} 
+                color="#3B82F6" 
               />
-            </HStack>
-          </Pressable>
+            </RNView>
+          </TouchableOpacity>
         )}
-      </HStack>
+      </RNView>
 
       {/* Grouped transaction list */}
       {showAll ? renderGroupedTransactions() : (
-        <VStack space={2}>
+        <RNView style={{ gap: 8 }}>
           {displayedTransactions.map(renderTransaction)}
-        </VStack>
+        </RNView>
       )}
 
       {/* Enhanced action button */}
-      <Button 
-        mt={4} 
-        colorScheme="blue" 
-        borderRadius={20} 
-        size="sm"
+      <TouchableOpacity 
+        style={{ 
+          marginTop: 16, 
+          backgroundColor: '#3B82F6', 
+          borderRadius: 20, 
+          padding: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8
+        }}
         onPress={() => navigation.navigate('ExpensesList')}
-        _text={{ fontWeight: 'semibold' }}
-        leftIcon={<Icon as={Ionicons} name="list" size="xs" />}
       >
-        View All Expenses
-      </Button>
-    </Box>
+        <Ionicons name="list" size={16} color="white" />
+        <Text color="white" fontWeight="600">
+          View All Expenses
+        </Text>
+      </TouchableOpacity>
+    </View>
   );
 };
 

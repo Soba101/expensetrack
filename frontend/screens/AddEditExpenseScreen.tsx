@@ -1,21 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Box, 
-  VStack, 
-  HStack, 
-  Text, 
-  Button, 
-  useColorModeValue, 
-  useToast,
-  Image,
-  Center,
-  Icon,
-  Pressable,
-  Select,
-  CheckIcon,
-  Spinner
-} from 'native-base';
-import { TextInput, StyleSheet, Dimensions, FlatList } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
+import { TextInput, StyleSheet, Dimensions, FlatList, TouchableOpacity, Image, View as RNView } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as expenseService from '../services/expenseService';
@@ -33,6 +18,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     minHeight: 50,
     fontWeight: '400',
+  },
+  container: {
+    flex: 1,
+  },
+  flatListContent: {
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    paddingBottom: 40,
   },
 });
 
@@ -52,7 +45,6 @@ interface RouteParams {
 const AddEditExpenseScreen: React.FC = () => {
   const route = useRoute();
   const navigation = useNavigation();
-  const toast = useToast();
   
   // Get route parameters
   const params = route.params as RouteParams;
@@ -60,14 +52,15 @@ const AddEditExpenseScreen: React.FC = () => {
   const receiptData = params?.receiptData;
   const isFromUpload = params?.isFromUpload || false;
 
-  // Clean theme colors
-  const bg = useColorModeValue('white', 'gray.900');
-  const cardBg = useColorModeValue('gray.50', 'gray.800');
-  const border = useColorModeValue('gray.300', 'gray.600');
-  const heading = useColorModeValue('gray.900', 'gray.100');
-  const text = useColorModeValue('gray.700', 'gray.200');
-  const subtext = useColorModeValue('gray.500', 'gray.400');
-  const inputBg = useColorModeValue('white', 'gray.700');
+  // Use Tamagui theme system instead of Native Base
+  const theme = useTheme();
+  const bg = theme.background.val;
+  const cardBg = theme.backgroundHover.val;
+  const border = theme.borderColor.val;
+  const heading = theme.color.val;
+  const text = theme.color.val;
+  const subtext = theme.colorHover.val;
+  const inputBg = theme.backgroundHover.val;
 
   // Form state
   const [amount, setAmount] = useState('');
@@ -141,12 +134,8 @@ const AddEditExpenseScreen: React.FC = () => {
     try {
       console.log('🤖 Starting automatic OCR processing...');
       
-      // Show processing toast
-      toast.show({
-        title: '🤖 Processing Receipt',
-        description: 'Extracting data automatically...',
-        duration: 2000,
-      });
+      // Show processing message
+      console.log('🤖 Processing Receipt: Extracting data automatically...');
 
       // Process receipt with OCR
       const result = await processReceiptWithOCR(receiptId);
@@ -176,22 +165,14 @@ const AddEditExpenseScreen: React.FC = () => {
       setOcrCompleted(true);
       
       // Show success message
-      toast.show({
-        title: '✨ Data Extracted!',
-        description: 'Form has been pre-filled. Review and adjust as needed.',
-        duration: 3000,
-      });
+      console.log('✨ Data Extracted! Form has been pre-filled. Review and adjust as needed.');
 
     } catch (error) {
       console.error('❌ Automatic OCR failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'OCR processing failed';
       
-      // Show error toast but don't block user
-      toast.show({
-        title: '⚠️ Auto-extraction Failed',
-        description: 'Please fill the form manually.',
-        duration: 4000,
-      });
+      // Show error message but don't block user
+      console.log('⚠️ Auto-extraction Failed: Please fill the form manually.');
     } finally {
       setIsProcessingOCR(false);
     }
@@ -201,11 +182,7 @@ const AddEditExpenseScreen: React.FC = () => {
   const handleSave = async () => {
     // Simple validation
     if (!amount || !description) {
-      toast.show({
-        title: 'Missing Information',
-        description: 'Please fill in amount and description.',
-        duration: 3000,
-      });
+      console.log('Missing Information: Please fill in amount and description.');
       return;
     }
 
@@ -223,21 +200,13 @@ const AddEditExpenseScreen: React.FC = () => {
 
       await expenseService.saveExpense(expenseData);
       
-      toast.show({
-        title: 'Expense Saved',
-        description: 'Your expense has been recorded successfully.',
-        duration: 2000,
-      });
+      console.log('Expense Saved: Your expense has been recorded successfully.');
 
       navigation.goBack();
       
     } catch (error: any) {
       console.error('Save error:', error);
-      toast.show({
-        title: 'Save Failed',
-        description: error.message || 'Please try again.',
-        duration: 3000,
-      });
+      console.log('Save Failed:', error.message || 'Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -259,9 +228,9 @@ const AddEditExpenseScreen: React.FC = () => {
     keyboardType?: any;
     required?: boolean;
   }) => (
-    <VStack space={2} mb={5}>
-      <Text fontSize="sm" fontWeight="600" color={text}>
-        {label} {required && <Text color="red.500">*</Text>}
+    <RNView style={{ gap: 8, marginBottom: 20 }}>
+      <Text fontSize="$3" fontWeight="600" color={text}>
+        {label} {required && <Text color="#EF4444">*</Text>}
       </Text>
       <TextInput
         style={[
@@ -278,7 +247,7 @@ const AddEditExpenseScreen: React.FC = () => {
         onChangeText={onChangeText}
         keyboardType={keyboardType}
       />
-    </VStack>
+    </RNView>
   );
 
   // Create form data for FlatList
@@ -294,32 +263,33 @@ const AddEditExpenseScreen: React.FC = () => {
     switch (item.type) {
       case 'receipt':
         return receiptData?.image ? (
-          <Box 
-            p={4} 
-            borderRadius={16} 
-            bg={cardBg} 
-            mb={6}
+          <View 
+            padding="$4" 
+            borderRadius="$4" 
+            backgroundColor={cardBg} 
+            marginBottom="$6"
           >
-            <Text fontSize="md" fontWeight="600" color={text} mb={3}>
+            <Text fontSize="$4" fontWeight="600" color={text} marginBottom="$3">
               Receipt Image
             </Text>
-            <Center>
+            <RNView style={{ alignItems: 'center' }}>
               <Image
                 source={{ uri: receiptData.image }}
-                alt="Receipt"
-                width="100%"
-                height={160}
-                borderRadius={12}
+                style={{
+                  width: '100%',
+                  height: 160,
+                  borderRadius: 12,
+                }}
                 resizeMode="cover"
               />
-            </Center>
-          </Box>
+            </RNView>
+          </View>
         ) : null;
 
       case 'form':
         return (
-          <Box position="relative">
-            <VStack space={0}>
+          <RNView style={{ position: 'relative' }}>
+            <RNView>
               <FormInput
                 label="Amount"
                 value={amount}
@@ -351,120 +321,137 @@ const AddEditExpenseScreen: React.FC = () => {
                 placeholder="Where did you make this purchase?"
               />
 
-              {/* Category Dropdown */}
-              <VStack space={2} mb={5}>
-                <Text fontSize="sm" fontWeight="600" color={text}>
+              {/* Category Dropdown - Simplified for now */}
+              <RNView style={{ gap: 8, marginBottom: 20 }}>
+                <Text fontSize="$3" fontWeight="600" color={text}>
                   Category
                 </Text>
-                <Select
-                  selectedValue={category}
-                  onValueChange={(value: string) => setCategory(value || '')}
-                  placeholder="Select a category"
-                  borderRadius={12}
-                  borderColor={border}
-                  bg={inputBg}
-                  fontSize="md"
-                  _selectedItem={{
-                    bg: 'blue.100',
-                    endIcon: <CheckIcon size="xs" />,
-                  }}
-                >
+                <RNView style={{ gap: 8 }}>
                   {categories.map(cat => (
-                    <Select.Item key={cat} label={cat} value={cat} />
+                    <TouchableOpacity
+                      key={cat}
+                      onPress={() => setCategory(cat)}
+                      style={{
+                        padding: 12,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: category === cat ? '#3B82F6' : border,
+                        backgroundColor: category === cat ? '#EBF8FF' : inputBg,
+                      }}
+                    >
+                      <Text 
+                        fontSize="$3" 
+                        color={category === cat ? '#1D4ED8' : text}
+                        fontWeight={category === cat ? '600' : '400'}
+                      >
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
                   ))}
-                </Select>
-                </VStack>
-            </VStack>
+                </RNView>
+              </RNView>
+            </RNView>
 
             {/* OCR Processing Overlay */}
             {isProcessingOCR && (
-              <Box
-                position="absolute"
-                top={0}
-                left={0}
-                right={0}
-                bottom={0}
-                bg="rgba(255, 255, 255, 0.95)"
-                borderRadius={12}
-                justifyContent="center"
-                alignItems="center"
-                zIndex={10}
+              <RNView
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  borderRadius: 12,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  zIndex: 10,
+                }}
               >
-                <VStack space={4} alignItems="center">
-                  <Box
-                    bg="blue.50"
-                    p={6}
-                    borderRadius={20}
+                <RNView style={{ gap: 16, alignItems: 'center' }}>
+                  <View
+                    backgroundColor="#EBF8FF"
+                    padding="$6"
+                    borderRadius="$6"
                     borderWidth={1}
-                    borderColor="blue.200"
+                    borderColor="#BEE3F8"
                   >
-                    <VStack space={3} alignItems="center">
-                      <Text fontSize="3xl">🤖</Text>
-                      <Text fontSize="lg" fontWeight="bold" color="blue.700">
+                    <RNView style={{ gap: 12, alignItems: 'center' }}>
+                      <Text fontSize="$8">🤖</Text>
+                      <Text fontSize="$5" fontWeight="bold" color="#1E40AF">
                         Extracting Data
                       </Text>
-                      <Text fontSize="sm" color="blue.600" textAlign="center">
+                      <Text fontSize="$3" color="#2563EB" textAlign="center">
                         AI is reading your receipt and filling the form automatically...
                       </Text>
-                      <HStack space={2} alignItems="center" mt={2}>
-                        <Spinner size="sm" color="blue.500" />
-                        <Text fontSize="sm" color="blue.600">
+                      <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                        <Text color="#2563EB">⏳</Text>
+                        <Text fontSize="$3" color="#2563EB">
                           This takes just a few seconds
                         </Text>
-                      </HStack>
-                    </VStack>
-                  </Box>
-                </VStack>
-              </Box>
+                      </RNView>
+                    </RNView>
+                  </View>
+                </RNView>
+              </RNView>
             )}
-          </Box>
+          </RNView>
         );
 
       case 'buttons':
         return (
-          <VStack space={3} mt={6}>
-            <Button
-              size="lg"
-              colorScheme="blue"
-              borderRadius={12}
+          <RNView style={{ gap: 12, marginTop: 24 }}>
+            <TouchableOpacity
               onPress={handleSave}
-              isLoading={isSaving}
-              isDisabled={isSaving}
-              _text={{ fontWeight: '600', fontSize: 'md' }}
+              disabled={isSaving}
+              style={{
+                backgroundColor: '#3B82F6',
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+                opacity: isSaving ? 0.7 : 1,
+              }}
             >
-              {isSaving ? 'Saving...' : 'Save Expense'}
-            </Button>
+              <Text fontSize="$4" fontWeight="600" color="white">
+                {isSaving ? 'Saving...' : 'Save Expense'}
+              </Text>
+            </TouchableOpacity>
             
-            <Button
-              size="lg"
-              variant="outline"
-              borderRadius={12}
+            <TouchableOpacity
               onPress={() => navigation.goBack()}
-              _text={{ fontWeight: '500', fontSize: 'md' }}
+              style={{
+                borderWidth: 1,
+                borderColor: border,
+                padding: 16,
+                borderRadius: 12,
+                alignItems: 'center',
+              }}
             >
-              Cancel
-            </Button>
-          </VStack>
+              <Text fontSize="$4" fontWeight="500" color={text}>
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </RNView>
         );
 
       case 'info':
         return receiptData ? (
-          <Box 
-            p={4} 
-            borderRadius={12} 
-            bg={cardBg}
-            mt={6}
+          <View 
+            padding="$4" 
+            borderRadius="$3" 
+            backgroundColor={cardBg}
+            marginTop="$6"
           >
-            <Text fontSize="sm" fontWeight="600" color={text} mb={1}>
+            <Text fontSize="$3" fontWeight="600" color={text} marginBottom="$1">
               Receipt Information
             </Text>
-            <Text fontSize="xs" color={subtext}>
+            <Text fontSize="$2" color={subtext}>
               {receiptData._id 
                 ? `ID: ${receiptData._id}`
                 : 'Will be saved with this expense'
               }
             </Text>
-          </Box>
+          </View>
         ) : null;
 
       default:
@@ -473,65 +460,61 @@ const AddEditExpenseScreen: React.FC = () => {
   };
 
   return (
-    <Box flex={1} bg={bg} pt={8}>
+    <RNView style={[styles.container, { backgroundColor: bg }]}>
       {/* Simple Header */}
-      <Box 
-        pt={10} 
-        pb={2} 
-        px={6}
+      <View 
+        paddingTop="$10" 
+        paddingBottom="$2" 
+        paddingHorizontal="$6"
         borderBottomWidth={1}
         borderBottomColor={border}
       >
-        <HStack alignItems="center" justifyContent="space-between" mb={4}>
-          <Pressable onPress={() => navigation.goBack()}>
-            <HStack alignItems="center" space={2}>
-              <Icon as={Ionicons} name="arrow-back" size="md" color={text} />
-              <Text fontSize="md" color={text}>Back</Text>
-            </HStack>
-          </Pressable>
+        <RNView style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="arrow-back" size={20} color={text} />
+              <Text fontSize="$4" color={text}>Back</Text>
+            </RNView>
+          </TouchableOpacity>
           
           {receiptData && (
-            <HStack alignItems="center" space={2}>
-              <Icon as={Ionicons} name="camera" size="sm" color="green.500" />
-              <Text fontSize="sm" color="green.500" fontWeight="500">Receipt</Text>
+            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="camera" size={16} color="#10B981" />
+              <Text fontSize="$3" color="#10B981" fontWeight="500">Receipt</Text>
               
               {/* OCR Processing Indicator */}
               {isProcessingOCR && (
-                <HStack alignItems="center" space={1}>
-                  <Icon as={Ionicons} name="sync" size="xs" color="blue.500" />
-                  <Text fontSize="xs" color="blue.500" fontWeight="500">Processing...</Text>
-                </HStack>
+                <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="sync" size={12} color="#3B82F6" />
+                  <Text fontSize="$2" color="#3B82F6" fontWeight="500">Processing...</Text>
+                </RNView>
               )}
               
               {/* OCR Completed Indicator */}
               {ocrCompleted && (
-                <HStack alignItems="center" space={1}>
-                  <Icon as={Ionicons} name="checkmark-circle" size="sm" color="green.500" />
-                  <Text fontSize="xs" color="green.500" fontWeight="500">Auto-filled</Text>
-                </HStack>
+                <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <Text fontSize="$2" color="#10B981" fontWeight="500">Auto-filled</Text>
+                </RNView>
               )}
-            </HStack>
+            </RNView>
           )}
-        </HStack>
+        </RNView>
         
-        <Text fontSize="2xl" fontWeight="700" color={heading}>
+        <Text fontSize="$8" fontWeight="700" color={heading}>
           {receiptData ? 'Review Receipt' : 'Add Expense'}
         </Text>
-      </Box>
+      </View>
 
       {/* FlatList for form content */}
       <FlatList
         data={formData}
         renderItem={renderFormSection}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={{ 
-          paddingHorizontal: 24, 
-          paddingVertical: 24,
-          paddingBottom: 40 
-        }}
+        contentContainerStyle={styles.flatListContent}
         showsVerticalScrollIndicator={false}
       />
-    </Box>
+    </RNView>
   );
 };
 

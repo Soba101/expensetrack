@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TextInput, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
-import { Button, VStack, Heading, useColorModeValue, Link, HStack, Text, useToast, Box, Icon, Center, Pressable } from 'native-base';
+import { View, StyleSheet, TextInput, Dimensions, KeyboardAvoidingView, Platform, TouchableOpacity, View as RNView } from 'react-native';
+import { View as TamaguiView, Text, useTheme } from '@tamagui/core';
 import { useNavigation } from '@react-navigation/native';
 import * as authService from '../services/authService'; // Import authService
 import { Ionicons } from '@expo/vector-icons';
@@ -17,55 +17,37 @@ const RegisterScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigation = useNavigation();
-  const toast = useToast();
 
-  // Enhanced theme-aware colors for modern design
-  const bgGradient = useColorModeValue(['#f8fafc', '#e2e8f0'], ['#1a202c', '#2d3748']);
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const headingColor = useColorModeValue('gray.900', 'white');
-  const subtitleColor = useColorModeValue('gray.600', 'gray.300');
-  const inputBg = useColorModeValue('gray.50', 'gray.700');
-  const inputBorder = useColorModeValue('gray.200', 'gray.600');
-  const inputFocusBorder = useColorModeValue('blue.500', 'blue.400');
-  const inputText = useColorModeValue('gray.900', 'gray.100');
-  const iconColor = useColorModeValue('gray.400', 'gray.500');
-  const shadowColor = useColorModeValue('gray.200', 'gray.900');
+  // Use Tamagui theme system instead of Native Base
+  const theme = useTheme();
+  const cardBg = theme.backgroundHover.val;
+  const headingColor = theme.color.val;
+  const subtitleColor = theme.colorHover.val;
+  const inputBg = theme.background.val;
+  const inputBorder = theme.borderColor.val;
+  const inputText = theme.color.val;
+  const iconColor = theme.colorHover.val;
+  const shadowColor = theme.borderColor.val;
 
   const handleRegister = async () => {
     // Validate password confirmation
     if (password !== confirmPassword) {
-      toast.show({
-        title: 'Password Mismatch',
-        description: 'Passwords do not match. Please try again.',
-        duration: 3000,
-      });
+      console.log('Password Mismatch: Passwords do not match. Please try again.');
       return;
     }
 
     if (password.length < 6) {
-      toast.show({
-        title: 'Password Too Short',
-        description: 'Password must be at least 6 characters long.',
-        duration: 3000,
-      });
+      console.log('Password Too Short: Password must be at least 6 characters long.');
       return;
     }
 
     setLoading(true);
     try {
       await authService.register(username, password);
-      toast.show({
-        title: 'Registration Successful',
-        description: 'You can now log in with your new account.',
-        duration: 3000,
-      });
+      console.log('Registration Successful: You can now log in with your new account.');
       navigation.navigate('Login' as never);
     } catch (error: any) {
-      toast.show({
-        title: 'Registration Failed',
-        description: error.message || 'An unexpected error occurred.',
-        duration: 3000,
-      });
+      console.log('Registration Failed:', error.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
@@ -77,56 +59,56 @@ const RegisterScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View
-        style={[styles.gradient, { backgroundColor: bgGradient[0] }]}
+        style={[styles.gradient, { backgroundColor: theme.background.val }]}
       >
-        <Center flex={1} px={6}>
+        <TamaguiView flex={1} paddingHorizontal="$6" justifyContent="center" alignItems="center">
           {/* App Logo/Icon */}
-          <Box mb={6}>
-            <Center
-              w={20}
-              h={20}
-              bg="green.500"
-              borderRadius="full"
-              shadow={3}
-              mb={4}
+          <TamaguiView marginBottom="$6" alignItems="center">
+            <TamaguiView
+              width={80}
+              height={80}
+              backgroundColor="#10B981"
+              borderRadius="$10"
+              marginBottom="$4"
+              alignItems="center"
+              justifyContent="center"
             >
-              <Icon as={Ionicons} name="person-add" size="xl" color="white" />
-            </Center>
-            <Text fontSize="lg" fontWeight="bold" color={headingColor} textAlign="center">
+              <Ionicons name="person-add" size={32} color="white" />
+            </TamaguiView>
+            <Text fontSize="$5" fontWeight="bold" color={headingColor} textAlign="center">
               Join ExpenseTracker
             </Text>
-          </Box>
+          </TamaguiView>
 
           {/* Main Card */}
-          <Box
-            w="100%"
-            maxW="400px"
-            bg={cardBg}
-            borderRadius="3xl"
-            p={8}
-            shadow={9}
+          <TamaguiView
+            width="100%"
+            maxWidth={400}
+            backgroundColor={cardBg}
+            borderRadius="$8"
+            padding="$8"
             borderWidth={1}
             borderColor={shadowColor}
           >
-            <VStack space={6} alignItems="center">
+            <RNView style={{ gap: 24, alignItems: 'center' }}>
               {/* Header */}
-              <VStack space={2} alignItems="center">
-                <Heading size="xl" color={headingColor} fontWeight="bold">
+              <RNView style={{ gap: 8, alignItems: 'center' }}>
+                <Text fontSize="$6" fontWeight="bold" color={headingColor}>
                   Create Account
-                </Heading>
-                <Text fontSize="md" color={subtitleColor} textAlign="center">
+                </Text>
+                <Text fontSize="$4" color={subtitleColor} textAlign="center">
                   Start your journey to better expense management
                 </Text>
-              </VStack>
+              </RNView>
 
               {/* Input Fields */}
-              <VStack space={4} w="100%">
+              <RNView style={{ gap: 16, width: '100%' }}>
                 {/* Username Input */}
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" color={subtitleColor} mb={2}>
+                <RNView>
+                  <Text fontSize="$3" fontWeight="500" color={subtitleColor} marginBottom="$2">
                     Username
                   </Text>
-                  <Box position="relative">
+                  <RNView style={{ position: 'relative' }}>
                     <TextInput
                       style={[styles.modernInput, { 
                         backgroundColor: inputBg, 
@@ -141,18 +123,18 @@ const RegisterScreen: React.FC = () => {
                       autoCorrect={false}
                       blurOnSubmit={false}
                     />
-                    <Box position="absolute" right={4} top={4}>
-                      <Icon as={Ionicons} name="person-outline" size="sm" color={iconColor} />
-                    </Box>
-                  </Box>
-                </Box>
+                    <RNView style={{ position: 'absolute', right: 16, top: 16 }}>
+                      <Ionicons name="person-outline" size={20} color={iconColor} />
+                    </RNView>
+                  </RNView>
+                </RNView>
 
                 {/* Password Input */}
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" color={subtitleColor} mb={2}>
+                <RNView>
+                  <Text fontSize="$3" fontWeight="500" color={subtitleColor} marginBottom="$2">
                     Password
                   </Text>
-                  <Box position="relative">
+                  <RNView style={{ position: 'relative' }}>
                     <TextInput
                       style={[styles.modernInput, { 
                         backgroundColor: inputBg, 
@@ -168,28 +150,25 @@ const RegisterScreen: React.FC = () => {
                       autoCorrect={false}
                       blurOnSubmit={false}
                     />
-                    <Pressable 
-                      position="absolute" 
-                      right={4} 
-                      top={4}
+                    <TouchableOpacity 
+                      style={{ position: 'absolute', right: 16, top: 16 }}
                       onPress={() => setShowPassword(!showPassword)}
                     >
-                      <Icon 
-                        as={Ionicons} 
+                      <Ionicons 
                         name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                        size="sm" 
+                        size={20} 
                         color={iconColor} 
                       />
-                    </Pressable>
-                  </Box>
-                </Box>
+                    </TouchableOpacity>
+                  </RNView>
+                </RNView>
 
                 {/* Confirm Password Input */}
-                <Box>
-                  <Text fontSize="sm" fontWeight="medium" color={subtitleColor} mb={2}>
+                <RNView>
+                  <Text fontSize="$3" fontWeight="500" color={subtitleColor} marginBottom="$2">
                     Confirm Password
                   </Text>
-                  <Box position="relative">
+                  <RNView style={{ position: 'relative' }}>
                     <TextInput
                       style={[styles.modernInput, { 
                         backgroundColor: inputBg, 
@@ -205,65 +184,54 @@ const RegisterScreen: React.FC = () => {
                       autoCorrect={false}
                       blurOnSubmit={false}
                     />
-                    <Pressable 
-                      position="absolute" 
-                      right={4} 
-                      top={4}
+                    <TouchableOpacity 
+                      style={{ position: 'absolute', right: 16, top: 16 }}
                       onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                     >
-                      <Icon 
-                        as={Ionicons} 
+                      <Ionicons 
                         name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
-                        size="sm" 
+                        size={20} 
                         color={iconColor} 
                       />
-                    </Pressable>
-                  </Box>
-                </Box>
-              </VStack>
+                    </TouchableOpacity>
+                  </RNView>
+                </RNView>
+              </RNView>
 
               {/* Register Button */}
-              <Button
-                w="100%"
-                h={12}
-                bg="green.500"
-                borderRadius="xl"
+              <TouchableOpacity
+                style={[styles.registerButton, { opacity: loading ? 0.7 : 1 }]}
                 onPress={handleRegister}
-                isLoading={loading}
-                _pressed={{ bg: "green.600" }}
-                _text={{ 
-                  fontSize: "md", 
-                  fontWeight: "bold",
-                  color: "white"
-                }}
-                shadow={3}
+                disabled={loading}
               >
-                Create Account
-              </Button>
+                <Text fontSize="$4" fontWeight="bold" color="white">
+                  {loading ? 'Creating Account...' : 'Create Account'}
+                </Text>
+              </TouchableOpacity>
 
               {/* Divider */}
-              <HStack alignItems="center" w="100%">
-                <Box flex={1} h="1px" bg={inputBorder} />
-                <Text mx={4} fontSize="sm" color={subtitleColor}>
+              <RNView style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+                <TamaguiView flex={1} height={1} backgroundColor={inputBorder} />
+                <Text marginHorizontal="$4" fontSize="$3" color={subtitleColor}>
                   or
                 </Text>
-                <Box flex={1} h="1px" bg={inputBorder} />
-              </HStack>
+                <TamaguiView flex={1} height={1} backgroundColor={inputBorder} />
+              </RNView>
 
               {/* Sign In Link */}
-              <HStack justifyContent="center" alignItems="center">
-                <Text fontSize="sm" color={subtitleColor}>
+              <RNView style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+                <Text fontSize="$3" color={subtitleColor}>
                   Already have an account?{' '}
                 </Text>
-                <Pressable onPress={() => navigation.navigate('Login' as never)}>
-                  <Text fontSize="sm" color="green.500" fontWeight="semibold">
+                <TouchableOpacity onPress={() => navigation.navigate('Login' as never)}>
+                  <Text fontSize="$3" color="#10B981" fontWeight="600">
                     Sign In
                   </Text>
-                </Pressable>
-              </HStack>
-            </VStack>
-          </Box>
-        </Center>
+                </TouchableOpacity>
+              </RNView>
+            </RNView>
+          </TamaguiView>
+        </TamaguiView>
       </View>
     </KeyboardAvoidingView>
   );
@@ -285,6 +253,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: '100%',
     fontWeight: '500',
+  },
+  registerButton: {
+    width: '100%',
+    height: 48,
+    backgroundColor: '#10B981',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   input: {
     height: 48,

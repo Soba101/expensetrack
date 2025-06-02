@@ -1,23 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FlatList, RefreshControl } from 'react-native';
-import {
-  Box,
-  VStack,
-  HStack,
-  Text,
-  Input,
-  Button,
-  useColorModeValue,
-  Spinner,
-  Center,
-  Pressable,
-  Icon,
-  Select,
-  CheckIcon,
-  useToast,
-  Badge,
-  Divider,
-} from 'native-base';
+import { FlatList, RefreshControl, TextInput, TouchableOpacity, View as RNView } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -50,7 +33,6 @@ interface Expense {
 // ExpensesListScreen: Comprehensive list of all expenses with search, filter, and sort
 const ExpensesListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const toast = useToast();
 
   // State management
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -61,13 +43,14 @@ const ExpensesListScreen: React.FC = () => {
   const [sortBy, setSortBy] = useState('date'); // date, amount, description
   const [sortOrder, setSortOrder] = useState('desc'); // asc, desc
 
-  // Theme colors
-  const bg = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
-  const heading = useColorModeValue('gray.900', 'gray.100');
-  const text = useColorModeValue('gray.800', 'gray.200');
-  const subtext = useColorModeValue('gray.600', 'gray.400');
+  // Use Tamagui theme system instead of Native Base
+  const theme = useTheme();
+  const bg = theme.background.val;
+  const cardBg = theme.backgroundHover.val;
+  const border = theme.borderColor.val;
+  const heading = theme.color.val;
+  const text = theme.color.val;
+  const subtext = theme.colorHover.val;
 
   // Load expenses from backend
   const loadExpenses = async (showLoading = true) => {
@@ -84,11 +67,7 @@ const ExpensesListScreen: React.FC = () => {
       setExpenses(data);
     } catch (error: any) {
       console.error('Failed to load expenses:', error);
-      toast.show({
-        title: 'Error',
-        description: error.message || 'Failed to load expenses',
-        duration: 3000,
-      });
+      console.log('Error: Failed to load expenses -', error.message || 'Unknown error');
     } finally {
       console.log('loadExpenses finished, setting loading to false');
       if (showLoading) setLoading(false);
@@ -196,113 +175,120 @@ const ExpensesListScreen: React.FC = () => {
 
   // Render individual expense item
   const renderExpenseItem = ({ item }: { item: Expense }) => (
-    <Pressable
+    <TouchableOpacity
       onPress={() => navigation.navigate('ExpenseDetail', { expenseId: item._id })}
-      mb={3}
+      style={{ marginBottom: 12 }}
     >
-      <Box
-        p={4}
-        bg={cardBg}
-        borderRadius={20}
+      <View
+        padding="$4"
+        backgroundColor={cardBg}
+        borderRadius="$6"
         borderWidth={1}
         borderColor={border}
-        shadow={2}
       >
-        <HStack justifyContent="space-between" alignItems="flex-start" space={3}>
+        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           {/* Left side: Icon and details */}
-          <HStack space={3} flex={1} alignItems="flex-start">
-            <Box
-              p={2}
-              bg="blue.100"
-              borderRadius={20}
+          <RNView style={{ flexDirection: 'row', gap: 12, flex: 1, alignItems: 'flex-start' }}>
+            <View
+              padding="$2"
+              backgroundColor="#EBF8FF"
+              borderRadius="$6"
               alignItems="center"
               justifyContent="center"
             >
-              <Icon
-                as={Ionicons}
+              <Ionicons
                 name={getCategoryIcon(item.category) as keyof typeof Ionicons.glyphMap}
-                size="md"
-                color="blue.600"
+                size={20}
+                color="#2563EB"
               />
-            </Box>
+            </View>
             
-            <VStack flex={1} space={1}>
-              <Text fontSize="md" fontWeight="semibold" color={heading} numberOfLines={2}>
+            <RNView style={{ flex: 1, gap: 4 }}>
+              <Text fontSize="$4" fontWeight="600" color={heading} numberOfLines={2}>
                 {item.description}
               </Text>
               
               {item.vendor && (
-                <Text fontSize="sm" color={subtext} numberOfLines={1}>
+                <Text fontSize="$3" color={subtext} numberOfLines={1}>
                   {item.vendor}
                 </Text>
               )}
               
-              <HStack space={2} alignItems="center" flexWrap="wrap">
-                <Text fontSize="xs" color={subtext}>
+              <RNView style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Text fontSize="$2" color={subtext}>
                   {formatDate(item.date)}
                 </Text>
                 
                 {item.category && (
-                  <Badge
-                    colorScheme="blue"
-                    variant="subtle"
-                    borderRadius={8}
-                    _text={{ fontSize: 'xs' }}
+                  <View
+                    backgroundColor="#EBF8FF"
+                    paddingHorizontal="$2"
+                    paddingVertical="$1"
+                    borderRadius="$2"
                   >
-                    {item.category}
-                  </Badge>
+                    <Text fontSize="$2" color="#1D4ED8" fontWeight="500">
+                      {item.category}
+                    </Text>
+                  </View>
                 )}
                 
                 {item.receiptId && (
-                  <Icon
-                    as={Ionicons}
+                  <Ionicons
                     name="camera"
-                    size="xs"
-                    color="green.500"
+                    size={12}
+                    color="#10B981"
                   />
                 )}
-              </HStack>
-            </VStack>
-          </HStack>
+              </RNView>
+            </RNView>
+          </RNView>
           
           {/* Right side: Amount */}
-          <VStack alignItems="flex-end" space={1}>
-            <Text fontSize="lg" fontWeight="bold" color={heading}>
+          <RNView style={{ alignItems: 'flex-end', gap: 4 }}>
+            <Text fontSize="$5" fontWeight="bold" color={heading}>
               {formatCurrency(item.amount)}
             </Text>
-          </VStack>
-        </HStack>
-      </Box>
-    </Pressable>
+          </RNView>
+        </RNView>
+      </View>
+    </TouchableOpacity>
   );
 
   // Render empty state
   const renderEmptyState = () => (
-    <Center flex={1} p={8}>
-      <Icon
-        as={Ionicons}
+    <RNView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
+      <Ionicons
         name="receipt-outline"
-        size="6xl"
-        color="gray.400"
-        mb={4}
+        size={96}
+        color={subtext}
+        style={{ marginBottom: 16 }}
       />
-      <Text fontSize="lg" fontWeight="semibold" color={heading} mb={2}>
+      <Text fontSize="$5" fontWeight="600" color={heading} marginBottom="$2">
         No Expenses Found
       </Text>
-      <Text fontSize="md" color={subtext} textAlign="center" mb={6}>
+      <Text fontSize="$4" color={subtext} textAlign="center" marginBottom="$6">
         {searchQuery || selectedCategory
           ? 'Try adjusting your search or filters'
           : 'Start by adding your first expense'}
       </Text>
-      <Button
-        colorScheme="blue"
-        borderRadius={20}
+      <TouchableOpacity
         onPress={() => navigation.navigate('AddEditExpense')}
-        leftIcon={<Icon as={Ionicons} name="add" size="sm" />}
+        style={{
+          backgroundColor: '#3B82F6',
+          paddingHorizontal: 20,
+          paddingVertical: 12,
+          borderRadius: 20,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 8,
+        }}
       >
-        Add Expense
-      </Button>
-    </Center>
+        <Ionicons name="add" size={16} color="white" />
+        <Text fontSize="$4" fontWeight="600" color="white">
+          Add Expense
+        </Text>
+      </TouchableOpacity>
+    </RNView>
   );
 
   // Show loading spinner
@@ -310,123 +296,171 @@ const ExpensesListScreen: React.FC = () => {
   if (loading) {
     console.log('Rendering loading screen');
     return (
-      <Center flex={1} bg={bg}>
-        <Spinner size="lg" color="blue.500" />
-        <Text mt={4} color={text}>Loading expenses...</Text>
-      </Center>
+      <RNView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: bg }}>
+        <Text color="#3B82F6">⏳</Text>
+        <Text marginTop="$4" color={text}>Loading expenses...</Text>
+      </RNView>
     );
   }
 
   return (
-    <Box flex={1} bg={bg}>
+    <RNView style={{ flex: 1, backgroundColor: bg }}>
       {/* Header with summary */}
-      <Box p={4} bg={cardBg} borderBottomWidth={1} borderBottomColor={border}>
-        <VStack space={3}>
+      <View padding="$4" backgroundColor={cardBg} borderBottomWidth={1} borderBottomColor={border}>
+        <RNView style={{ gap: 12 }}>
           {/* Summary stats */}
-          <HStack justifyContent="space-between" alignItems="center">
-            <VStack>
-              <Text fontSize="sm" color={subtext}>
+          <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <RNView>
+              <Text fontSize="$3" color={subtext}>
                 {filteredAndSortedExpenses.length} expense{filteredAndSortedExpenses.length !== 1 ? 's' : ''}
               </Text>
-              <Text fontSize="xl" fontWeight="bold" color={heading}>
+              <Text fontSize="$6" fontWeight="bold" color={heading}>
                 {formatCurrency(totalAmount)}
               </Text>
-            </VStack>
+            </RNView>
             
-            <Button
-              size="sm"
-              colorScheme="blue"
-              borderRadius={20}
+            <TouchableOpacity
               onPress={() => navigation.navigate('AddEditExpense')}
-              leftIcon={<Icon as={Ionicons} name="add" size="xs" />}
+              style={{
+                backgroundColor: '#3B82F6',
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+              }}
             >
-              Add
-            </Button>
-          </HStack>
+              <Ionicons name="add" size={12} color="white" />
+              <Text fontSize="$3" fontWeight="600" color="white">
+                Add
+              </Text>
+            </TouchableOpacity>
+          </RNView>
 
           {/* Search bar */}
-          <Input
-            placeholder="Search expenses..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            borderRadius={20}
-            bg={bg}
-            borderColor={border}
-            InputLeftElement={
-              <Icon
-                as={Ionicons}
-                name="search"
-                size="sm"
-                ml={3}
-                color="gray.400"
-              />
-            }
-            InputRightElement={
-              searchQuery ? (
-                <Pressable onPress={() => setSearchQuery('')} mr={3}>
-                  <Icon
-                    as={Ionicons}
-                    name="close-circle"
-                    size="sm"
-                    color="gray.400"
-                  />
-                </Pressable>
-              ) : undefined
-            }
-          />
+          <RNView style={{ position: 'relative' }}>
+            <TextInput
+              placeholder="Search expenses..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={{
+                borderRadius: 20,
+                backgroundColor: bg,
+                borderWidth: 1,
+                borderColor: border,
+                paddingHorizontal: 40,
+                paddingVertical: 12,
+                fontSize: 16,
+                color: text,
+              }}
+              placeholderTextColor={subtext}
+            />
+            <RNView style={{ position: 'absolute', left: 12, top: 12 }}>
+              <Ionicons name="search" size={20} color={subtext} />
+            </RNView>
+            {searchQuery && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={{ position: 'absolute', right: 12, top: 12 }}
+              >
+                <Ionicons name="close-circle" size={20} color={subtext} />
+              </TouchableOpacity>
+            )}
+          </RNView>
 
           {/* Filters and sort */}
-          <HStack space={2} alignItems="center">
-            {/* Category filter */}
-            <Select
-              flex={1}
-              selectedValue={selectedCategory}
-              onValueChange={(value: string) => setSelectedCategory(value || '')}
-              placeholder="All Categories"
-              borderRadius={20}
-              bg={bg}
-              borderColor={border}
-              _selectedItem={{
-                bg: 'blue.100',
-                endIcon: <CheckIcon size="xs" />,
-              }}
-            >
-              <Select.Item label="All Categories" value="" />
-              {categories.map(category => (
-                <Select.Item key={category} label={category} value={category} />
-              ))}
-            </Select>
+          <RNView style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            {/* Category filter - Simplified */}
+            <RNView style={{ flex: 1, gap: 4 }}>
+              <Text fontSize="$2" color={subtext}>Category</Text>
+              <RNView style={{ gap: 4 }}>
+                <TouchableOpacity
+                  onPress={() => setSelectedCategory('')}
+                  style={{
+                    padding: 8,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: !selectedCategory ? '#3B82F6' : border,
+                    backgroundColor: !selectedCategory ? '#EBF8FF' : bg,
+                  }}
+                >
+                  <Text 
+                    fontSize="$2" 
+                    color={!selectedCategory ? '#1D4ED8' : text}
+                    fontWeight={!selectedCategory ? '600' : '400'}
+                  >
+                    All Categories
+                  </Text>
+                </TouchableOpacity>
+                {categories.slice(0, 3).map(category => (
+                  <TouchableOpacity
+                    key={category}
+                    onPress={() => setSelectedCategory(category)}
+                    style={{
+                      padding: 8,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: selectedCategory === category ? '#3B82F6' : border,
+                      backgroundColor: selectedCategory === category ? '#EBF8FF' : bg,
+                    }}
+                  >
+                    <Text 
+                      fontSize="$2" 
+                      color={selectedCategory === category ? '#1D4ED8' : text}
+                      fontWeight={selectedCategory === category ? '600' : '400'}
+                    >
+                      {category}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </RNView>
+            </RNView>
 
-            {/* Sort options */}
-            <Select
-              flex={1}
-              selectedValue={`${sortBy}-${sortOrder}`}
-              onValueChange={(value: string) => {
-                const [newSortBy, newSortOrder] = value.split('-');
-                setSortBy(newSortBy || 'date');
-                setSortOrder(newSortOrder || 'desc');
-              }}
-              borderRadius={20}
-              bg={bg}
-              borderColor={border}
-              _selectedItem={{
-                bg: 'blue.100',
-                endIcon: <CheckIcon size="xs" />,
-              }}
-            >
-              <Select.Item label="Newest First" value="date-desc" />
-              <Select.Item label="Oldest First" value="date-asc" />
-              <Select.Item label="Highest Amount" value="amount-desc" />
-              <Select.Item label="Lowest Amount" value="amount-asc" />
-              <Select.Item label="A-Z" value="description-asc" />
-              <Select.Item label="Z-A" value="description-desc" />
-            </Select>
-          </HStack>
-        </VStack>
-      </Box>
+            {/* Sort options - Simplified */}
+            <RNView style={{ flex: 1, gap: 4 }}>
+              <Text fontSize="$2" color={subtext}>Sort</Text>
+              <RNView style={{ gap: 4 }}>
+                {[
+                  { label: 'Newest First', value: 'date-desc' },
+                  { label: 'Highest Amount', value: 'amount-desc' },
+                  { label: 'A-Z', value: 'description-asc' },
+                ].map(option => {
+                  const isSelected = `${sortBy}-${sortOrder}` === option.value;
+                  return (
+                    <TouchableOpacity
+                      key={option.value}
+                      onPress={() => {
+                        const [newSortBy, newSortOrder] = option.value.split('-');
+                        setSortBy(newSortBy || 'date');
+                        setSortOrder(newSortOrder || 'desc');
+                      }}
+                      style={{
+                        padding: 8,
+                        borderRadius: 8,
+                        borderWidth: 1,
+                        borderColor: isSelected ? '#3B82F6' : border,
+                        backgroundColor: isSelected ? '#EBF8FF' : bg,
+                      }}
+                    >
+                      <Text 
+                        fontSize="$2" 
+                        color={isSelected ? '#1D4ED8' : text}
+                        fontWeight={isSelected ? '600' : '400'}
+                      >
+                        {option.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </RNView>
+            </RNView>
+          </RNView>
+        </RNView>
+      </View>
 
       {/* Expenses list */}
-      <Box flex={1} p={4}>
+      <View flex={1} padding="$4">
         {filteredAndSortedExpenses.length === 0 ? (
           renderEmptyState()
         ) : (
@@ -445,8 +479,8 @@ const ExpensesListScreen: React.FC = () => {
             }
           />
         )}
-      </Box>
-    </Box>
+      </View>
+    </RNView>
   );
 };
 

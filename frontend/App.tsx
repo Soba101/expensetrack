@@ -8,8 +8,9 @@ import ExpensesListScreen from './screens/ExpensesListScreen';
 import AddEditExpenseScreen from './screens/AddEditExpenseScreen';
 import ExpenseDetailScreen from './screens/ExpenseDetailScreen';
 import { Ionicons } from '@expo/vector-icons';
-import { NativeBaseProvider, Icon, HStack, Pressable, Spinner, Box } from 'native-base';
-import { colorModeManager } from './colorModeManager';
+// Tamagui imports replacing Native Base
+import { TamaguiProvider, View, Text } from '@tamagui/core';
+import tamaguiConfig from './tamagui.config';
 import CategoriesScreen from './screens/CategoriesScreen';
 import ReportsScreen from './screens/ReportsScreen';
 import AboutScreen from './screens/AboutScreen';
@@ -30,8 +31,8 @@ if (!(BackHandler as any).removeEventListener) {
   };
 }
 
-// Suppress known NativeBase warnings that are harmless
-// These warnings come from NativeBase's internal components and animations
+// Suppress known warnings that are harmless during migration
+// These warnings come from the transition period between Native Base and Tamagui
 const originalWarn = console.warn;
 console.warn = (...args) => {
   if (
@@ -77,11 +78,11 @@ const UnauthenticatedStack = () => (
 
 export default function App() {
   return (
-    <NativeBaseProvider colorModeManager={colorModeManager}>
+    <TamaguiProvider config={tamaguiConfig}>
       <AuthProvider>
         <AppContent />
       </AuthProvider>
-    </NativeBaseProvider>
+    </TamaguiProvider>
   );
 }
 
@@ -90,9 +91,9 @@ const AppContent = () => {
 
   if (isLoading) {
     return (
-      <Box flex={1} justifyContent="center" alignItems="center">
-        <Spinner size="lg" />
-      </Box>
+      <View flex={1} justifyContent="center" alignItems="center">
+        <Text>Loading...</Text>
+      </View>
     );
   }
 

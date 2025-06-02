@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, HStack, VStack, Avatar, useColorModeValue, Icon } from 'native-base';
+import { View as RNView } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserData } from '../services/authService';
 
@@ -82,79 +83,79 @@ const UserInfo = () => {
     return user.username.substring(0, 2).toUpperCase();
   };
 
-  // Theme-aware colors with enhanced gradients and modern styling
-  const cardBg = useColorModeValue(
-    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', 
-    'linear-gradient(135deg, #2D3748 0%, #4A5568 100%)'
-  );
-  const cardBgSolid = useColorModeValue('blue.500', 'gray.700'); // Fallback for gradient
-  const text = useColorModeValue('white', 'gray.100');
-  const subText = useColorModeValue('blue.100', 'gray.300');
-  const iconColor = useColorModeValue('yellow.200', 'yellow.300');
-  const dateColor = useColorModeValue('blue.200', 'gray.400');
+  // Using Tamagui theme instead of useColorModeValue
+  const theme = useTheme();
+  const cardBgSolid = '#3B82F6'; // Blue color
+  const text = theme.color.val;
+  const subText = '#64748B';
+  const iconColor = '#F59E0B';
+  const dateColor = '#94A3B8';
 
   return (
-    <Box 
-      p={4} 
-      borderRadius={20} 
-      mb={4} 
-      bg={cardBgSolid} // Using solid color as gradient fallback
-      shadow={2}
+    <View 
+      padding="$4" 
+      borderRadius="$6" 
+      marginBottom="$4" 
+      backgroundColor={cardBgSolid}
       position="relative"
       overflow="hidden"
     >
-      {/* Background gradient effect - using Box overlay for gradient simulation */}
-      <Box
+      {/* Background gradient effect - using View overlay for gradient simulation */}
+      <View
         position="absolute"
         top={0}
         left={0}
         right={0}
         bottom={0}
-        bg={cardBgSolid}
+        backgroundColor={cardBgSolid}
         opacity={0.9}
       />
       
       {/* Main content */}
-      <HStack space={3} alignItems="center" position="relative" zIndex={1}>
+      <RNView style={{ flexDirection: 'row', alignItems: 'center', position: 'relative', zIndex: 1, gap: 12 }}>
         {/* User avatar with initials */}
-        <Avatar 
-          size="lg" 
-          bg="white"
-          _text={{ color: 'blue.500', fontWeight: 'bold', fontSize: 'lg' }}
+        <View 
+          width={60}
+          height={60}
+          borderRadius={30}
+          backgroundColor="white"
           borderWidth={2}
           borderColor="white"
-          shadow={2}
+          justifyContent="center"
+          alignItems="center"
         >
-          {getUserInitials()}
-        </Avatar>
+          <Text color="#3B82F6" fontWeight="bold" fontSize="$5">
+            {getUserInitials()}
+          </Text>
+        </View>
         
         {/* Compact greeting content */}
-        <VStack flex={1} space={0.5}>
+        <RNView style={{ flex: 1, gap: 4 }}>
           {/* Time-based greeting with icon */}
-          <HStack alignItems="center" space={1.5}>
-            <Icon as={Ionicons} name={getTimeIcon()} size="xs" color={iconColor} />
-            <Text fontSize="md" color={subText} fontWeight="medium">
+          <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name={getTimeIcon()} size={16} color={iconColor} />
+            <Text fontSize="$4" color={subText} fontWeight="500">
               {getGreeting()},
             </Text>
-          </HStack>
+          </RNView>
           
           {/* User name with smaller typography */}
-          <Text fontSize="xl" fontWeight="bold" color={text} letterSpacing="tight">
+          <Text fontSize="$6" fontWeight="bold" color="white">
             {getDisplayName()}
           </Text>
           
           {/* Current date */}
-          <Text fontSize="xs" color={dateColor} fontWeight="medium">
+          <Text fontSize="$2" color={dateColor} fontWeight="500">
             {currentDate}
           </Text>
           
           {/* Contextual motivational message */}
-          <Text fontSize="xs" color={subText} fontStyle="italic" mt={0.5}>
+          <Text fontSize="$2" color={subText} fontStyle="italic">
             {getContextualMessage()}
           </Text>
-        </VStack>
-      </HStack>
-    </Box>
+        </RNView>
+      </RNView>
+    </View>
   );
 };
 

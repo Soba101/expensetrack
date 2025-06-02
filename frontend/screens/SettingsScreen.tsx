@@ -1,5 +1,6 @@
 import React from 'react';
-import { ScrollView, Box, VStack, HStack, Text, useColorModeValue, Pressable, Icon, Switch, Divider, useColorMode, useToast } from 'native-base';
+import { ScrollView, TouchableOpacity, Switch, View as RNView } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
@@ -9,39 +10,29 @@ import { useAuth } from '../context/AuthContext';
 const SettingsScreen: React.FC = () => {
   const navigation = useNavigation();
   const { logout } = useAuth();
-  const toast = useToast();
   
-  // Color mode functionality for dark/light theme toggle
-  const { colorMode, toggleColorMode } = useColorMode();
+  // Use Tamagui theme system instead of Native Base
+  const theme = useTheme();
+  const bg = theme.background.val;
+  const cardBg = theme.backgroundHover.val;
+  const border = theme.borderColor.val;
+  const primaryText = theme.color.val;
+  const secondaryText = theme.colorHover.val;
+  const accentColor = '#3B82F6';
+  const dangerColor = '#EF4444';
   
   // Local state for notifications toggle (placeholder functionality)
   const [notificationsEnabled, setNotificationsEnabled] = React.useState(true);
-  
-  // Apple-style colors
-  const bg = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
-  const primaryText = useColorModeValue('gray.900', 'gray.100');
-  const secondaryText = useColorModeValue('gray.600', 'gray.400');
-  const accentColor = useColorModeValue('blue.500', 'blue.400');
-  const dangerColor = useColorModeValue('red.500', 'red.400');
+  const [darkModeEnabled, setDarkModeEnabled] = React.useState(false);
 
   // Handle logout functionality with error handling and user feedback
   const handleLogout = async () => {
     try {
       await logout();
-      toast.show({
-        title: 'Logged Out',
-        description: 'You have been successfully logged out.',
-        duration: 2000,
-      });
+      console.log('Logged Out: You have been successfully logged out.');
     } catch (error) {
       console.error('Logout error:', error);
-      toast.show({
-        title: 'Logout Error',
-        description: 'There was an issue logging out. Please try again.',
-        duration: 3000,
-      });
+      console.log('Logout Error: There was an issue logging out. Please try again.');
     }
   };
 
@@ -63,79 +54,82 @@ const SettingsScreen: React.FC = () => {
     rightElement?: React.ReactNode;
     isDestructive?: boolean;
   }) => (
-    <Pressable onPress={onPress} disabled={!onPress}>
-      <HStack 
-        alignItems="center" 
-        justifyContent="space-between" 
-        p={4}
-        bg={cardBg}
-      >
-        <HStack alignItems="center" space={3} flex={1}>
-          <Box
-            p={2}
-            borderRadius={8}
-            bg={useColorModeValue('gray.100', 'gray.700')}
+    <TouchableOpacity onPress={onPress} disabled={!onPress}>
+      <RNView style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        padding: 16,
+        backgroundColor: cardBg 
+      }}>
+        <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+          <View
+            padding="$2"
+            borderRadius="$2"
+            backgroundColor={theme.backgroundFocus.val}
           >
-            <Icon
-              as={Ionicons}
+            <Ionicons
               name={icon as any}
-              size="sm"
+              size={20}
               color={isDestructive ? dangerColor : accentColor}
             />
-          </Box>
-          <VStack flex={1}>
-            <Text fontSize="md" fontWeight="medium" color={isDestructive ? dangerColor : primaryText}>
+          </View>
+          <RNView style={{ flex: 1 }}>
+            <Text fontSize="$4" fontWeight="500" color={isDestructive ? dangerColor : primaryText}>
               {title}
             </Text>
             {subtitle && (
-              <Text fontSize="sm" color={secondaryText}>
+              <Text fontSize="$3" color={secondaryText}>
                 {subtitle}
               </Text>
             )}
-          </VStack>
-        </HStack>
+          </RNView>
+        </RNView>
         
         {rightElement || (showArrow && (
-          <Icon
-            as={Ionicons}
+          <Ionicons
             name="chevron-forward"
-            size="sm"
+            size={16}
             color={secondaryText}
           />
         ))}
-      </HStack>
-    </Pressable>
+      </RNView>
+    </TouchableOpacity>
   );
 
   // Settings section component
   const SettingsSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
-    <VStack space={0} mb={6}>
+    <RNView style={{ gap: 0, marginBottom: 24 }}>
       <Text 
-        fontSize="sm" 
-        fontWeight="semibold" 
+        fontSize="$3" 
+        fontWeight="600" 
         color={secondaryText} 
         textTransform="uppercase"
-        mb={2}
-        px={4}
+        marginBottom="$2"
+        paddingHorizontal="$4"
       >
         {title}
       </Text>
-      <Box
-        borderRadius={20}
-        bg={cardBg}
+      <View
+        borderRadius="$6"
+        backgroundColor={cardBg}
         borderWidth={1}
         borderColor={border}
-        shadow={2}
         overflow="hidden"
       >
         {children}
-      </Box>
-    </VStack>
+      </View>
+    </RNView>
+  );
+
+  // Divider component
+  const Divider = () => (
+    <View height={1} backgroundColor={border} />
   );
 
   return (
-    <ScrollView flex={1} bg={bg}>
-      <Box p={4} pt={8}>
+    <ScrollView style={{ flex: 1, backgroundColor: bg }}>
+      <RNView style={{ padding: 16, paddingTop: 32 }}>
         {/* Account Section */}
         <SettingsSection title="Account">
           <SettingsItem
@@ -158,13 +152,13 @@ const SettingsScreen: React.FC = () => {
             }}
           />
           <Divider />
-                     <SettingsItem
-             icon="log-out"
-             title="Logout"
-             subtitle="Sign out of your account"
-             onPress={handleLogout}
-             isDestructive={true}
-           />
+          <SettingsItem
+            icon="log-out"
+            title="Logout"
+            subtitle="Sign out of your account"
+            onPress={handleLogout}
+            isDestructive={true}
+          />
         </SettingsSection>
 
         {/* Preferences Section */}
@@ -182,10 +176,10 @@ const SettingsScreen: React.FC = () => {
             subtitle="Manage notification preferences"
             rightElement={
               <Switch 
-                size="sm" 
-                isChecked={notificationsEnabled}
-                onToggle={() => setNotificationsEnabled(!notificationsEnabled)}
-                colorScheme="blue"
+                value={notificationsEnabled}
+                onValueChange={setNotificationsEnabled}
+                trackColor={{ false: '#767577', true: '#3B82F6' }}
+                thumbColor={notificationsEnabled ? '#ffffff' : '#f4f3f4'}
               />
             }
             showArrow={false}
@@ -197,10 +191,10 @@ const SettingsScreen: React.FC = () => {
             subtitle="Toggle dark/light theme"
             rightElement={
               <Switch 
-                size="sm" 
-                isChecked={colorMode === 'dark'}
-                onToggle={toggleColorMode}
-                colorScheme="blue"
+                value={darkModeEnabled}
+                onValueChange={setDarkModeEnabled}
+                trackColor={{ false: '#767577', true: '#3B82F6' }}
+                thumbColor={darkModeEnabled ? '#ffffff' : '#f4f3f4'}
               />
             }
             showArrow={false}
@@ -261,12 +255,12 @@ const SettingsScreen: React.FC = () => {
         </SettingsSection>
 
         {/* App Version */}
-        <Box mt={4} alignItems="center">
-          <Text fontSize="sm" color={secondaryText}>
+        <RNView style={{ marginTop: 16, alignItems: 'center' }}>
+          <Text fontSize="$3" color={secondaryText}>
             ExpenseTrack v1.0.0
           </Text>
-        </Box>
-      </Box>
+        </RNView>
+      </RNView>
     </ScrollView>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Text, VStack, HStack, useColorModeValue, Circle, Badge, Spinner } from 'native-base';
+import { View as RNView } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import { useExpenseData } from '../context/ExpenseDataContext';
 
@@ -23,25 +24,26 @@ const SmartInsights = () => {
   const { summaryData, expenses, loading: dataLoading } = useExpenseData();
   const [insightsLoading, setInsightsLoading] = useState(true);
 
-  // Apple-style colors with semantic meaning - MOVED TO TOP to fix hooks order
-  const cardBg = useColorModeValue('white', 'gray.900');
-  const border = useColorModeValue('coolGray.100', 'gray.700');
-  const primaryText = useColorModeValue('gray.900', 'gray.100');
-  const secondaryText = useColorModeValue('gray.600', 'gray.400');
+  // Using Tamagui theme instead of useColorModeValue - following migration guide Pattern 2
+  const theme = useTheme();
+  const cardBg = theme.backgroundHover.val;
+  const border = theme.borderColor.val;
+  const primaryText = theme.color.val;
+  const secondaryText = theme.color11?.val || '#64748B';
   
-  // Insight colors - all defined at top to maintain hook order
-  const greenBg = useColorModeValue('green.50', 'green.900');
-  const greenBorder = useColorModeValue('green.200', 'green.700');
-  const greenIcon = useColorModeValue('green.500', 'green.400');
-  const orangeBg = useColorModeValue('orange.50', 'orange.900');
-  const orangeBorder = useColorModeValue('orange.200', 'orange.700');
-  const orangeIcon = useColorModeValue('orange.500', 'orange.400');
-  const blueBg = useColorModeValue('blue.50', 'blue.900');
-  const blueBorder = useColorModeValue('blue.200', 'blue.700');
-  const blueIcon = useColorModeValue('blue.500', 'blue.400');
-  const iconBg = useColorModeValue('white', 'gray.800');
-  const footerBg = useColorModeValue('gray.50', 'gray.800');
-  const footerIconColor = useColorModeValue('#6b7280', '#9ca3af');
+  // Insight colors - using fixed colors for consistency
+  const greenBg = '#F0FDF4';
+  const greenBorder = '#BBF7D0';
+  const greenIcon = '#10B981';
+  const orangeBg = '#FFFBEB';
+  const orangeBorder = '#FED7AA';
+  const orangeIcon = '#F59E0B';
+  const blueBg = '#EFF6FF';
+  const blueBorder = '#DBEAFE';
+  const blueIcon = '#3B82F6';
+  const iconBg = theme.background.val;
+  const footerBg = theme.backgroundHover.val;
+  const footerIconColor = '#6B7280';
 
   // Generate insights when data is available
   useEffect(() => {
@@ -233,144 +235,139 @@ const SmartInsights = () => {
     const colors = getInsightColors(insight.color);
     
     return (
-      <Box
-        p={4}
-        borderRadius={20}
-        bg={colors.bg}
+      <View
+        padding="$4"
+        borderRadius="$5"
+        backgroundColor={colors.bg}
         borderWidth={1}
         borderColor={colors.border}
-        shadow={2}
       >
-        <HStack space={3} alignItems="flex-start">
+        <RNView style={{ flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
           {/* Icon with background */}
-          <Box
-            p={2}
-            borderRadius={20}
-            bg={iconBg}
-            shadow={1}
+          <View
+            padding="$2"
+            borderRadius="$5"
+            backgroundColor={iconBg}
           >
             <Ionicons 
               name={insight.icon as any} 
               size={20} 
               color={colors.icon} 
             />
-          </Box>
+          </View>
 
           {/* Content */}
-          <VStack flex={1} space={2}>
-            <HStack justifyContent="space-between" alignItems="center">
+          <RNView style={{ flex: 1, gap: 8 }}>
+            <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text 
-                fontSize="md" 
+                fontSize="$4" 
                 fontWeight="600" 
                 color={primaryText}
               >
                 {insight.title}
               </Text>
-              <Badge 
-                colorScheme={colors.badge} 
-                borderRadius={8}
-                _text={{ fontSize: 'xs', fontWeight: '500' }}
-              >
-                {insight.action}
-              </Badge>
-            </HStack>
+              <View backgroundColor={colors.bg} paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
+                <Text fontSize="$2" color={colors.icon} fontWeight="500">
+                  {insight.action}
+                </Text>
+              </View>
+            </RNView>
             
             <Text 
-              fontSize="sm" 
+              fontSize="$3" 
               color={secondaryText}
-              lineHeight="md"
+              lineHeight="$1"
             >
               {insight.description}
             </Text>
-          </VStack>
-        </HStack>
-      </Box>
+          </RNView>
+        </RNView>
+      </View>
     );
   };
 
   // Show loading state
   if (dataLoading || insightsLoading) {
     return (
-      <Box mb={6}>
-        <HStack justifyContent="space-between" alignItems="center" mb={4} px={1}>
-          <Text fontSize="lg" fontWeight="600" color={primaryText}>
+      <View marginBottom="$6">
+        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 }}>
+          <Text fontSize="$5" fontWeight="600" color={primaryText}>
             Smart Insights
           </Text>
-          <HStack alignItems="center" space={1}>
-            <Circle size={2} bg="green.400" />
-            <Text fontSize="xs" color={secondaryText} fontWeight="500">
+          <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <View width={8} height={8} borderRadius="$2" backgroundColor="#10B981" />
+            <Text fontSize="$2" color={secondaryText} fontWeight="500">
               AI-powered
             </Text>
-          </HStack>
-        </HStack>
+          </RNView>
+        </RNView>
         
-        <Box
-          p={6}
-          borderRadius={20}
-          bg={cardBg}
+        <View
+          padding="$6"
+          borderRadius="$5"
+          backgroundColor={cardBg}
           borderWidth={1}
           borderColor={border}
-          shadow={2}
           alignItems="center"
           justifyContent="center"
-          minH={120}
+          minHeight={120}
         >
-          <Spinner size="sm" color="blue.500" />
-          <Text mt={2} fontSize="sm" color={secondaryText}>
+          <Text color="#3B82F6">Analyzing...</Text>
+          <Text marginTop="$2" fontSize="$3" color={secondaryText}>
             Analyzing your spending...
           </Text>
-        </Box>
-      </Box>
+        </View>
+      </View>
     );
   }
 
   return (
-    <Box mb={6}>
+    <View marginBottom="$6">
       {/* Section Header - Apple's clean typography */}
-      <HStack justifyContent="space-between" alignItems="center" mb={4} px={1}>
+      <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, paddingHorizontal: 4 }}>
         <Text 
-          fontSize="lg" 
+          fontSize="$5" 
           fontWeight="600" 
           color={primaryText}
         >
           Smart Insights
         </Text>
-        <HStack alignItems="center" space={1}>
-          <Circle size={2} bg="green.400" />
-          <Text fontSize="xs" color={secondaryText} fontWeight="500">
+        <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <View width={8} height={8} borderRadius="$2" backgroundColor="#10B981" />
+          <Text fontSize="$2" color={secondaryText} fontWeight="500">
             AI-powered
           </Text>
-        </HStack>
-      </HStack>
+        </RNView>
+      </RNView>
 
       {/* Insights List - Apple's clean, scannable layout */}
-      <VStack space={3}>
+      <RNView style={{ gap: 12 }}>
         {insights.map((insight) => (
           <InsightCard key={insight.id} insight={insight} />
         ))}
-      </VStack>
+      </RNView>
 
       {/* Footer with helpful tip - Apple's progressive disclosure */}
-      <Box
-        mt={4}
-        p={3}
-        borderRadius={20}
-        bg={footerBg}
+      <View
+        marginTop="$4"
+        padding="$3"
+        borderRadius="$5"
+        backgroundColor={footerBg}
         borderWidth={1}
         borderColor={border}
       >
-        <HStack alignItems="center" space={2}>
+        <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <Ionicons 
             name="bulb" 
             size={16} 
             color={footerIconColor} 
           />
-          <Text fontSize="xs" color={secondaryText} flex={1}>
+          <Text fontSize="$2" color={secondaryText} flex={1}>
             Insights update daily based on your spending patterns and goals.
           </Text>
-        </HStack>
-      </Box>
-    </Box>
+        </RNView>
+      </View>
+    </View>
   );
 };
 

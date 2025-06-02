@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Text, VStack, HStack, useColorModeValue, Circle } from 'native-base';
+import { View as RNView } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 
 // ExpenseBreakdown component shows expenses by category
 // Uses theme-aware colors for light/dark mode
@@ -12,31 +13,46 @@ const ExpenseBreakdown = () => {
     { name: 'Other', amount: 100 },
   ];
 
-  // Use theme-aware colors
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
-  const heading = useColorModeValue('gray.900', 'gray.100');
-  const text = useColorModeValue('gray.800', 'gray.200');
+  // Use Tamagui theme system instead of Native Base
+  const theme = useTheme();
+  const cardBg = theme.backgroundHover.val;
+  const border = theme.borderColor.val;
+  const heading = theme.color.val;
+  const text = theme.color.val;
 
   // Category colors for visual distinction (Apple-style)
-  const categoryColors = ['blue.400', 'teal.400', 'orange.400', 'gray.400'];
+  const categoryColors = ['#3B82F6', '#14B8A6', '#F97316', '#6B7280'];
 
   return (
-    <Box p={4} borderWidth={1} borderRadius={20} mb={6} bg={cardBg} borderColor={border} shadow={2}>
-      <Text fontSize="lg" fontWeight="bold" mb={2} color={heading}>Expense Breakdown</Text>
+    <View 
+      padding="$4" 
+      borderWidth={1} 
+      borderRadius="$6" 
+      marginBottom="$6" 
+      backgroundColor={cardBg} 
+      borderColor={border}
+    >
+      <Text fontSize="$5" fontWeight="bold" marginBottom="$2" color={heading}>
+        Expense Breakdown
+      </Text>
       {/* Apple-style: Category color dots, bolder names, clear spacing */}
-      <VStack space={3}>
+      <RNView style={{ gap: 12 }}>
         {categories.map((cat, idx) => (
-          <HStack key={cat.name} justifyContent="space-between" alignItems="center" space={2}>
-            <HStack alignItems="center" space={2}>
-              <Circle size={3} bg={categoryColors[idx % categoryColors.length]} />
-              <Text color={text} fontWeight="semibold">{cat.name}</Text>
-            </HStack>
+          <RNView key={cat.name} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View 
+                width={12} 
+                height={12} 
+                borderRadius="$10" 
+                backgroundColor={categoryColors[idx % categoryColors.length]} 
+              />
+              <Text color={text} fontWeight="600">{cat.name}</Text>
+            </RNView>
             <Text color={text}>${cat.amount.toFixed(2)}</Text>
-          </HStack>
+          </RNView>
         ))}
-      </VStack>
-    </Box>
+      </RNView>
+    </View>
   );
 };
 

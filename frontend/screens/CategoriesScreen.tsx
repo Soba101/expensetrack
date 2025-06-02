@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, Box, VStack, HStack, Text, useColorModeValue, Icon, Pressable, Spinner, useToast } from 'native-base';
+import { ScrollView, View as RNView, TouchableOpacity } from 'react-native';
+import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import * as expenseService from '../services/expenseService';
 
@@ -9,7 +10,9 @@ const CategoriesScreen: React.FC = () => {
   const [categories, setCategories] = useState<string[]>([]);
   const [categoryStats, setCategoryStats] = useState<{ [key: string]: { amount: number; count: number } }>({});
   const [loading, setLoading] = useState(true);
-  const toast = useToast();
+  
+  // Use Tamagui theme system instead of Native Base
+  const theme = useTheme();
 
   // Load categories and their statistics on component mount
   useEffect(() => {
@@ -43,11 +46,8 @@ const CategoriesScreen: React.FC = () => {
       setCategoryStats(stats);
     } catch (error: any) {
       console.error('Failed to load categories:', error);
-      toast.show({
-        title: 'Error Loading Categories',
-        description: 'Failed to load categories. Please try again.',
-        duration: 3000,
-      });
+      // TODO: Replace with Tamagui toast system
+      console.log('Error Loading Categories: Failed to load categories. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -73,151 +73,135 @@ const CategoriesScreen: React.FC = () => {
     return iconMap[category] || iconMap['Other'];
   };
 
-  // Theme-aware colors
-  const bg = useColorModeValue('gray.50', 'gray.900');
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const border = useColorModeValue('coolGray.200', 'gray.700');
-  const primaryText = useColorModeValue('gray.900', 'gray.100');
-  const secondaryText = useColorModeValue('gray.600', 'gray.400');
-  const headerBg = useColorModeValue('blue.50', 'blue.900');
-
   // Show loading state
   if (loading) {
     return (
-      <ScrollView flex={1} bg={bg}>
-        <Box p={4} pt={6}>
-          <Box 
-            p={6} 
-            borderRadius={20} 
-            bg={cardBg} 
-            shadow={2}
+      <ScrollView style={{ flex: 1, backgroundColor: theme.background.val }}>
+        <View padding="$4" paddingTop="$6">
+          <View 
+            padding="$6" 
+            borderRadius="$6" 
+            backgroundColor={theme.backgroundHover.val}
             borderWidth={1}
-            borderColor={border}
+            borderColor={theme.borderColor.val}
             alignItems="center"
             justifyContent="center"
-            minH={300}
+            minHeight={300}
           >
-            <Spinner size="lg" color="blue.500" />
-            <Text mt={4} color={secondaryText}>
+            <Text color={theme.colorHover.val}>Loading...</Text>
+            <Text marginTop="$4" color={theme.colorHover.val}>
               Loading categories...
             </Text>
-          </Box>
-        </Box>
+          </View>
+        </View>
       </ScrollView>
     );
   }
 
   return (
-    <ScrollView flex={1} bg={bg}>
-      <Box p={4} pt={6}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.background.val }}>
+      <View padding="$4" paddingTop="$6">
         {/* Header */}
-        <Box 
-          p={6} 
-          borderRadius={20} 
-          bg={headerBg} 
-          shadow={3}
+        <View 
+          padding="$6" 
+          borderRadius="$6" 
+          backgroundColor="$blue2"
           borderWidth={1}
-          borderColor={border}
-          mb={6}
+          borderColor={theme.borderColor.val}
+          marginBottom="$6"
         >
-          <VStack space={2}>
-            <HStack alignItems="center" space={2}>
-              <Icon as={Ionicons} name="pricetag" size="lg" color="blue.500" />
-              <Text fontSize="2xl" fontWeight="bold" color={primaryText}>
+          <RNView style={{ gap: 8 }}>
+            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="pricetag" size={24} color="#3B82F6" />
+              <Text fontSize="$8" fontWeight="bold" color={theme.color.val}>
                 Expense Categories
               </Text>
-            </HStack>
-            <Text fontSize="md" color={secondaryText}>
+            </RNView>
+            <Text fontSize="$4" color={theme.colorHover.val}>
               {categories.length} categories • {Object.values(categoryStats).reduce((sum, stat) => sum + stat.count, 0)} total expenses
             </Text>
-          </VStack>
-        </Box>
+          </RNView>
+        </View>
 
         {/* Categories List */}
-        <VStack space={3}>
+        <RNView style={{ gap: 12 }}>
           {categories.map((category) => {
             const iconData = getCategoryIcon(category);
             const stats = categoryStats[category] || { amount: 0, count: 0 };
             
             return (
-              <Pressable key={category}>
-                <Box
-                  p={4}
-                  borderRadius={20}
-                  bg={cardBg}
-                  shadow={2}
+              <TouchableOpacity key={category}>
+                <View
+                  padding="$4"
+                  borderRadius="$6"
+                  backgroundColor={theme.backgroundHover.val}
                   borderWidth={1}
-                  borderColor={border}
+                  borderColor={theme.borderColor.val}
                 >
-                  <HStack alignItems="center" space={4}>
+                  <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                     {/* Category Icon */}
-                    <Box
-                      p={3}
-                      bg={iconData.bg}
-                      borderRadius={20}
+                    <View
+                      padding="$3"
+                      backgroundColor={iconData.bg}
+                      borderRadius="$6"
                       alignItems="center"
                       justifyContent="center"
                     >
-                      <Icon
-                        as={Ionicons}
+                      <Ionicons
                         name={iconData.icon as keyof typeof Ionicons.glyphMap}
-                        size="md"
+                        size={20}
                         color={iconData.color}
                       />
-                    </Box>
+                    </View>
 
                     {/* Category Info */}
-                    <VStack flex={1} space={1}>
-                      <Text fontSize="lg" fontWeight="semibold" color={primaryText}>
+                    <RNView style={{ flex: 1, gap: 4 }}>
+                      <Text fontSize="$5" fontWeight="600" color={theme.color.val}>
                         {category}
                       </Text>
-                      <Text fontSize="sm" color={secondaryText}>
+                      <Text fontSize="$3" color={theme.colorHover.val}>
                         {stats.count} {stats.count === 1 ? 'expense' : 'expenses'}
                       </Text>
-                    </VStack>
+                    </RNView>
 
                     {/* Amount */}
-                    <VStack alignItems="flex-end" space={1}>
-                      <Text fontSize="xl" fontWeight="bold" color={primaryText}>
+                    <RNView style={{ alignItems: 'flex-end', gap: 4 }}>
+                      <Text fontSize="$6" fontWeight="bold" color={theme.color.val}>
                         ${stats.amount.toFixed(2)}
                       </Text>
-                      <Text fontSize="xs" color={secondaryText}>
+                      <Text fontSize="$2" color={theme.colorHover.val}>
                         Total spent
                       </Text>
-                    </VStack>
-                  </HStack>
-                </Box>
-              </Pressable>
+                    </RNView>
+                  </RNView>
+                </View>
+              </TouchableOpacity>
             );
           })}
-        </VStack>
+        </RNView>
 
         {/* Empty state */}
         {categories.length === 0 && (
-          <Box 
-            p={6} 
-            borderRadius={20} 
-            bg={cardBg} 
-            shadow={2}
+          <View 
+            padding="$6" 
+            borderRadius="$6" 
+            backgroundColor={theme.backgroundHover.val}
             borderWidth={1}
-            borderColor={border}
+            borderColor={theme.borderColor.val}
             alignItems="center"
             justifyContent="center"
-            minH={200}
+            minHeight={200}
           >
-            <Icon as={Ionicons} name="pricetag-outline" size="xl" color={secondaryText} />
-            <Text mt={4} color={secondaryText} textAlign="center" fontSize="md">
-              No categories yet
+            <Ionicons name="pricetag-outline" size={48} color={theme.colorHover.val} />
+            <Text fontSize="$5" fontWeight="600" color={theme.color.val} marginTop="$4">
+              No Categories Found
             </Text>
-            <Text mt={2} color={secondaryText} textAlign="center" fontSize="sm">
-              Categories will appear as you add expenses
+            <Text fontSize="$3" color={theme.colorHover.val} textAlign="center" marginTop="$2">
+              Categories will appear here once you add your first expense.
             </Text>
-          </Box>
+          </View>
         )}
-
-        {/* Footer spacing */}
-        <Box h={6} />
-      </Box>
+      </View>
     </ScrollView>
   );
 };
