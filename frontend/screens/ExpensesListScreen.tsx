@@ -5,6 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as expenseService from '../services/expenseService';
+import { hapticFeedback } from '../utils/haptics';
+import { useToast } from '../components/Toast';
+import { useExpenseData } from '../context/ExpenseDataContext';
 
 // Define the navigation stack type
 type RootStackParamList = {
@@ -34,10 +37,10 @@ interface Expense {
 const ExpensesListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
 
-  // State management
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Use centralized data context instead of local state
+  const { expenses, loading, refreshing, refreshData } = useExpenseData();
+
+  // State management for UI only
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('date'); // date, amount, description
@@ -52,40 +55,17 @@ const ExpensesListScreen: React.FC = () => {
   const text = theme.color.val;
   const subtext = theme.colorHover.val;
 
-  // Load expenses from backend
-  const loadExpenses = async (showLoading = true) => {
-    try {
-      console.log('loadExpenses called, showLoading:', showLoading);
-      if (showLoading) {
-        console.log('Setting loading to true');
-        setLoading(true);
-      }
-      
-      console.log('Calling expenseService.getExpenses()...');
-      const data = await expenseService.getExpenses();
-      console.log('Expenses loaded successfully:', data.length, 'expenses');
-      setExpenses(data);
-    } catch (error: any) {
-      console.error('Failed to load expenses:', error);
-      console.log('Error: Failed to load expenses -', error.message || 'Unknown error');
-    } finally {
-      console.log('loadExpenses finished, setting loading to false');
-      if (showLoading) setLoading(false);
-      setRefreshing(false);
-    }
-  };
-
-  // Load expenses when screen comes into focus
+  // Load expenses when screen comes into focus using context
   useFocusEffect(
     React.useCallback(() => {
-      loadExpenses();
-    }, [])
+      refreshData();
+    }, [refreshData])
   );
 
-  // Handle pull-to-refresh
+  // Handle pull-to-refresh with haptic feedback
   const onRefresh = () => {
-    setRefreshing(true);
-    loadExpenses(false);
+    hapticFeedback.pullToRefresh(); // Add haptic feedback
+    refreshData();
   };
 
   // Get unique categories from expenses for filter dropdown
@@ -173,86 +153,98 @@ const ExpensesListScreen: React.FC = () => {
     return 'receipt-outline';
   };
 
-  // Render individual expense item
-  const renderExpenseItem = ({ item }: { item: Expense }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate('ExpenseDetail', { expenseId: item._id })}
-      style={{ marginBottom: 12 }}
-    >
-      <View
-        padding="$4"
-        backgroundColor={cardBg}
-        borderRadius="$6"
-        borderWidth={1}
-        borderColor={border}
+  // Render individual expense item with haptic feedback
+  const renderExpenseItem = ({ item }: { item: Expense }) => {
+    const handlePress = () => {
+      hapticFeedback.buttonPress(); // Add haptic feedback for navigation
+      navigation.navigate('ExpenseDetail', { expenseId: item._id });
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={handlePress}
+        style={{ marginBottom: 12 }}
+        activeOpacity={0.7}
       >
-        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-          {/* Left side: Icon and details */}
-          <RNView style={{ flexDirection: 'row', gap: 12, flex: 1, alignItems: 'flex-start' }}>
-            <View
-              padding="$2"
-              backgroundColor="#EBF8FF"
-              borderRadius="$6"
-              alignItems="center"
-              justifyContent="center"
-            >
-              <Ionicons
-                name={getCategoryIcon(item.category) as keyof typeof Ionicons.glyphMap}
-                size={20}
-                color="#2563EB"
-              />
-            </View>
-            
-            <RNView style={{ flex: 1, gap: 4 }}>
-              <Text fontSize="$4" fontWeight="600" color={heading} numberOfLines={2}>
-                {item.description}
-              </Text>
+        <View
+          padding="$4"
+          backgroundColor={cardBg}
+          borderRadius="$6"
+          borderWidth={1}
+          borderColor={border}
+          shadowColor="$shadowColor"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
+        >
+          <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+            {/* Left side: Icon and details */}
+            <RNView style={{ flexDirection: 'row', gap: 12, flex: 1, alignItems: 'flex-start' }}>
+              <View
+                padding="$2"
+                backgroundColor="#EBF8FF"
+                borderRadius="$6"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <Ionicons
+                  name={getCategoryIcon(item.category) as keyof typeof Ionicons.glyphMap}
+                  size={20}
+                  color="#2563EB"
+                />
+              </View>
               
-              {item.vendor && (
-                <Text fontSize="$3" color={subtext} numberOfLines={1}>
-                  {item.vendor}
-                </Text>
-              )}
-              
-              <RNView style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <Text fontSize="$2" color={subtext}>
-                  {formatDate(item.date)}
+              <RNView style={{ flex: 1, gap: 4 }}>
+                <Text fontSize="$4" fontWeight="600" color={heading} numberOfLines={2}>
+                  {item.description}
                 </Text>
                 
-                {item.category && (
-                  <View
-                    backgroundColor="#EBF8FF"
-                    paddingHorizontal="$2"
-                    paddingVertical="$1"
-                    borderRadius="$2"
-                  >
-                    <Text fontSize="$2" color="#1D4ED8" fontWeight="500">
-                      {item.category}
-                    </Text>
-                  </View>
+                {item.vendor && (
+                  <Text fontSize="$3" color={subtext} numberOfLines={1}>
+                    {item.vendor}
+                  </Text>
                 )}
                 
-                {item.receiptId && (
-                  <Ionicons
-                    name="camera"
-                    size={12}
-                    color="#10B981"
-                  />
-                )}
+                <RNView style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Text fontSize="$2" color={subtext}>
+                    {formatDate(item.date)}
+                  </Text>
+                  
+                  {item.category && (
+                    <View
+                      backgroundColor="#EBF8FF"
+                      paddingHorizontal="$2"
+                      paddingVertical="$1"
+                      borderRadius="$2"
+                    >
+                      <Text fontSize="$2" color="#1D4ED8" fontWeight="500">
+                        {item.category}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {item.receiptId && (
+                    <Ionicons
+                      name="camera"
+                      size={12}
+                      color="#10B981"
+                    />
+                  )}
+                </RNView>
               </RNView>
             </RNView>
+            
+            {/* Right side: Amount */}
+            <RNView style={{ alignItems: 'flex-end', gap: 4 }}>
+              <Text fontSize="$5" fontWeight="bold" color={heading}>
+                {formatCurrency(item.amount)}
+              </Text>
+            </RNView>
           </RNView>
-          
-          {/* Right side: Amount */}
-          <RNView style={{ alignItems: 'flex-end', gap: 4 }}>
-            <Text fontSize="$5" fontWeight="bold" color={heading}>
-              {formatCurrency(item.amount)}
-            </Text>
-          </RNView>
-        </RNView>
-      </View>
-    </TouchableOpacity>
-  );
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   // Render empty state
   const renderEmptyState = () => (

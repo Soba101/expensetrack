@@ -17,6 +17,7 @@ interface ExpenseDataContextType {
   
   // Methods
   refreshData: () => Promise<void>;
+  forceRefresh: () => Promise<void>; // Force refresh all data and clear cache
   addExpense: (expense: any) => void;
   updateExpense: (expense: any) => void;
   deleteExpense: (expenseId: string) => void;
@@ -84,34 +85,48 @@ export const ExpenseDataProvider: React.FC<ExpenseDataProviderProps> = ({ childr
     fetchAllData();
   }, []);
 
-  // Refresh function for pull-to-refresh
-  const refreshData = async () => {
+  // Refresh function for pull-to-refresh - memoized to prevent infinite loops
+  const refreshData = React.useCallback(async () => {
     await fetchAllData(true);
-  };
+  }, []);
 
-  // Optimistic updates for better UX
-  const addExpense = (expense: any) => {
+  // Force refresh - clears all data and refetches everything - memoized
+  const forceRefresh = React.useCallback(async () => {
+    console.log('ExpenseDataContext: Force refreshing all data...');
+    // Clear existing data first
+    setExpenses([]);
+    setSummaryData(null);
+    setRecentTransactions([]);
+    setError(null);
+    // Then fetch fresh data
+    await fetchAllData(false);
+  }, []);
+
+  // Optimistic updates for better UX - memoized
+  const addExpense = React.useCallback((expense: any) => {
+    console.log('ExpenseDataContext: Adding expense optimistically:', expense.id);
     setExpenses(prev => [expense, ...prev]);
-    // Note: In a real app, you'd also update summary and recent transactions
-    // For now, we'll trigger a refresh to get accurate data
-    refreshData();
-  };
+    // Refresh all data to ensure consistency across all components
+    setTimeout(() => fetchAllData(true), 100); // Small delay to avoid race conditions
+  }, []);
 
-  const updateExpense = (updatedExpense: any) => {
+  const updateExpense = React.useCallback((updatedExpense: any) => {
+    console.log('ExpenseDataContext: Updating expense optimistically:', updatedExpense.id);
     setExpenses(prev => 
       prev.map(expense => 
         expense.id === updatedExpense.id ? updatedExpense : expense
       )
     );
-    // Trigger refresh to update summary and recent transactions
-    refreshData();
-  };
+    // Refresh all data to ensure consistency across all components
+    setTimeout(() => fetchAllData(true), 100); // Small delay to avoid race conditions
+  }, []);
 
-  const deleteExpense = (expenseId: string) => {
+  const deleteExpense = React.useCallback((expenseId: string) => {
+    console.log('ExpenseDataContext: Deleting expense optimistically:', expenseId);
     setExpenses(prev => prev.filter(expense => expense.id !== expenseId));
-    // Trigger refresh to update summary and recent transactions
-    refreshData();
-  };
+    // Refresh all data to ensure consistency across all components
+    setTimeout(() => fetchAllData(true), 100); // Small delay to avoid race conditions
+  }, []);
 
   // Context value
   const value: ExpenseDataContextType = {
@@ -129,6 +144,7 @@ export const ExpenseDataProvider: React.FC<ExpenseDataProviderProps> = ({ childr
     
     // Methods
     refreshData,
+    forceRefresh,
     addExpense,
     updateExpense,
     deleteExpense,

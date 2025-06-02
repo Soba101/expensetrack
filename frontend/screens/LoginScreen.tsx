@@ -4,6 +4,8 @@ import { View as TamaguiView, Text, useTheme } from '@tamagui/core';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext'; // Import useAuth hook
 import { Ionicons } from '@expo/vector-icons';
+import { hapticFeedback } from '../utils/haptics';
+import { useToast } from '../components/Toast';
 // Temporarily commenting out LinearGradient to fix native module issue
 // import { LinearGradient } from 'expo-linear-gradient';
 
@@ -16,6 +18,7 @@ const LoginScreen: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigation = useNavigation();
   const { login } = useAuth();
+  const toast = useToast();
   
   // Use Tamagui theme system instead of Native Base
   const theme = useTheme();
@@ -29,16 +32,37 @@ const LoginScreen: React.FC = () => {
   const shadowColor = theme.borderColor.val;
 
   const handleLogin = async () => {
-    setLoading(true); // Set loading to true
+    // Validation with haptic feedback
+    if (!username.trim() || !password.trim()) {
+      hapticFeedback.formValidationError();
+      toast.error('Validation Error', 'Please fill in all fields');
+      return;
+    }
+
+    setLoading(true);
+    hapticFeedback.buttonPress(); // Haptic feedback for button press
+    
     try {
-      await login(username, password); // Call login from AuthContext
+      await login(username, password);
+      hapticFeedback.success(); // Success haptic feedback
+      toast.success('Login Successful', 'Welcome back!');
       // The AuthContext will handle navigation on success by updating isAuthenticated
     } catch (error: any) {
-      // Display error message
-      console.log('Login Failed:', error.message || 'An unexpected error occurred.');
+      hapticFeedback.error(); // Error haptic feedback
+      toast.error('Login Failed', error.message || 'An unexpected error occurred.');
     } finally {
-      setLoading(false); // Set loading to false
+      setLoading(false);
     }
+  };
+
+  const handleShowPasswordToggle = () => {
+    hapticFeedback.light(); // Light haptic feedback for toggle
+    setShowPassword(!showPassword);
+  };
+
+  const handleNavigateToRegister = () => {
+    hapticFeedback.buttonPress();
+    navigation.navigate('Register' as never);
   };
 
   return (
@@ -140,7 +164,7 @@ const LoginScreen: React.FC = () => {
                     />
                     <TouchableOpacity 
                       style={{ position: 'absolute', right: 16, top: 16 }}
-                      onPress={() => setShowPassword(!showPassword)}
+                      onPress={handleShowPasswordToggle}
                     >
                       <Ionicons 
                         name={showPassword ? "eye-off-outline" : "eye-outline"} 
@@ -177,7 +201,7 @@ const LoginScreen: React.FC = () => {
                 <Text fontSize="$3" color={subtitleColor}>
                   Don't have an account?{' '}
                 </Text>
-                <TouchableOpacity onPress={() => navigation.navigate('Register' as never)}>
+                <TouchableOpacity onPress={handleNavigateToRegister}>
                   <Text fontSize="$3" color="#3B82F6" fontWeight="600">
                     Sign Up
                   </Text>

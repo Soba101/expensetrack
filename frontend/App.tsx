@@ -19,6 +19,7 @@ import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExpenseDataProvider } from './context/ExpenseDataContext';
+import { ToastProvider } from './components/Toast';
 
 // Fix for BackHandler.removeEventListener deprecation in React Native 0.60+
 // This polyfill ensures compatibility with older navigation libraries
@@ -79,9 +80,13 @@ const UnauthenticatedStack = () => (
 export default function App() {
   return (
     <TamaguiProvider config={tamaguiConfig}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <ExpenseDataProvider>
+            <AppContent />
+          </ExpenseDataProvider>
+        </AuthProvider>
+      </ToastProvider>
     </TamaguiProvider>
   );
 }
@@ -101,9 +106,7 @@ const AppContent = () => {
     <NavigationContainer>
       <StatusBar style="auto" />
       {isAuthenticated ? (
-        <ExpenseDataProvider>
-          <AuthenticatedStack />
-        </ExpenseDataProvider>
+        <AuthenticatedStack />
       ) : (
         <UnauthenticatedStack />
       )}

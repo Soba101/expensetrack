@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useExpenseData } from '../context/ExpenseDataContext';
+import { hapticFeedback } from '../utils/haptics';
+import { useToast } from '../components/Toast';
 
 // Define the type for the navigation stack
 type RootStackParamList = {
@@ -17,14 +19,16 @@ type RootStackParamList = {
   About: undefined;
 };
 
-// Enhanced RecentTransactions component with improved visual hierarchy and interactivity
-// Features: Date grouping, status indicators, better icons, swipe actions, smart insights, real data from API
+// Enhanced RecentTransactions component with Tamagui animations and haptic feedback
 const RecentTransactions = () => {
   const [showAll, setShowAll] = useState(false);
   const [expandedTransaction, setExpandedTransaction] = useState<string | null>(null);
+  // Track pressed state for all transactions using a Set
+  const [pressedTransactions, setPressedTransactions] = useState<Set<string>>(new Set());
   
   // Use centralized data context
   const { recentTransactions: transactions, loading } = useExpenseData();
+  const toast = useToast();
 
   // Using Tamagui theme instead of useColorModeValue - following migration guide Pattern 2
   const theme = useTheme();
@@ -158,128 +162,173 @@ const RecentTransactions = () => {
     );
   }
 
-  // Render individual transaction with enhanced design
-  const renderTransaction = (tx: any) => {
+  // Enhanced transaction item with Tamagui animations
+  const renderTransaction = (tx: any, index: number) => {
     const iconData = getTransactionIcon(tx.description, tx.category);
     const statusData = getStatusIndicator(tx.status);
     const isExpanded = expandedTransaction === tx.id;
+    const isPressed = pressedTransactions.has(tx.id);
+
+    const handlePress = () => {
+      hapticFeedback.buttonPress();
+      setExpandedTransaction(isExpanded ? null : tx.id);
+    };
+
+    const handleLongPress = () => {
+      hapticFeedback.success();
+      toast.info('Transaction Details', `${tx.description} - $${tx.amount}`);
+    };
+
+    const handlePressIn = () => {
+      setPressedTransactions(prev => new Set(prev).add(tx.id));
+    };
+
+    const handlePressOut = () => {
+      setPressedTransactions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tx.id);
+        return newSet;
+      });
+    };
 
     return (
-      <TouchableOpacity
+      <View
         key={tx.id}
-        onPress={() => setExpandedTransaction(isExpanded ? null : tx.id)}
-        onLongPress={() => {
-          // TODO: Show action menu
-          console.log('Long press on transaction:', tx.id);
+        animation="bouncy"
+        enterStyle={{
+          opacity: 0,
+          y: 50,
+          scale: 0.95,
         }}
+        animateOnly={['opacity', 'transform']}
+        scale={isPressed ? 0.98 : 1}
+        marginBottom="$3"
       >
-        <View
-          padding="$3"
-          borderRadius="$5"
-          backgroundColor={transactionItemBg}
-          borderWidth={1}
-          borderColor={isExpanded ? '#3B82F6' : 'transparent'}
-          marginBottom="$2"
+        <TouchableOpacity
+          onPress={handlePress}
+          onLongPress={handleLongPress}
+          onPressIn={handlePressIn}
+          onPressOut={handlePressOut}
+          activeOpacity={0.8}
         >
-          <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-            {/* Icon and main info */}
-            <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
+          <View
+            backgroundColor={transactionItemBg}
+            borderRadius="$5"
+            borderWidth={1}
+            borderColor={border}
+            padding="$4"
+            shadowColor="$shadowColor"
+            shadowOffset={{ width: 0, height: 1 }}
+            shadowOpacity={0.05}
+            shadowRadius={2}
+          >
+            <View flexDirection="row" alignItems="center" gap="$3">
+              {/* Icon */}
               <View
-                padding="$2"
+                width={48}
+                height={48}
+                borderRadius="$6"
                 backgroundColor={iconData.bg}
-                borderRadius="$5"
                 alignItems="center"
                 justifyContent="center"
-                position="relative"
               >
-                <Ionicons 
-                  name={iconData.icon as keyof typeof Ionicons.glyphMap} 
-                  size={18} 
-                  color={iconData.color} 
+                <Ionicons
+                  name={iconData.icon as keyof typeof Ionicons.glyphMap}
+                  size={24}
+                  color={iconData.color}
                 />
-                {/* Receipt indicator */}
-                {tx.hasReceipt && (
-                  <View
-                    position="absolute"
-                    top={-4}
-                    right={-4}
-                    backgroundColor="#3B82F6"
-                    borderRadius="$6"
-                    width={8}
-                    height={8}
-                  />
-                )}
               </View>
-              
-              <RNView style={{ flex: 1, gap: 4 }}>
-                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text fontSize="$4" fontWeight="600" color={text} flex={1}>
-                    {tx.description}
-                  </Text>
-                  {tx.isUnusual && (
-                    <View backgroundColor="#FED7AA" paddingHorizontal="$2" paddingVertical="$1" borderRadius="$2">
-                      <Text fontSize="$2" color="#EA580C" fontWeight="500">
-                        Unusual
+
+              {/* Transaction details */}
+              <View flex={1}>
+                <View flexDirection="row" justifyContent="space-between" alignItems="flex-start">
+                  <View flex={1}>
+                    <Text
+                      fontSize="$4"
+                      fontWeight="600"
+                      color={text}
+                      numberOfLines={1}
+                    >
+                      {tx.description}
+                    </Text>
+                    <Text
+                      fontSize="$3"
+                      color={subtext}
+                      marginTop="$1"
+                    >
+                      {tx.category}
+                    </Text>
+                  </View>
+
+                  {/* Amount and status */}
+                  <View alignItems="flex-end">
+                    <Text
+                      fontSize="$4"
+                      fontWeight="700"
+                      color={text}
+                    >
+                      ${tx.amount}
+                    </Text>
+                    <View
+                      backgroundColor={statusData.color}
+                      borderRadius="$2"
+                      paddingHorizontal="$2"
+                      paddingVertical="$1"
+                      marginTop="$1"
+                    >
+                      <Text
+                        fontSize="$1"
+                        color="white"
+                        fontWeight="600"
+                      >
+                        {statusData.text}
                       </Text>
                     </View>
-                  )}
-                </RNView>
-                
-                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text fontSize="$3" color={subtext}>
-                    {tx.vendor || tx.category}
-                  </Text>
-                  <Text fontSize="$3" color={statusData.color}>
-                    {statusData.text}
-                  </Text>
-                </RNView>
-              </RNView>
-            </RNView>
+                  </View>
+                </View>
 
-            {/* Amount */}
-            <RNView style={{ alignItems: 'flex-end', gap: 2 }}>
-              <Text fontSize="$5" fontWeight="700" color={text}>
-                ${tx.amount.toFixed(2)}
-              </Text>
-              <Text fontSize="$2" color={subtext}>
-                {new Date(tx.date).toLocaleDateString()}
-              </Text>
-            </RNView>
-          </RNView>
-
-          {/* Expanded details */}
-          {isExpanded && (
-            <RNView style={{ gap: 8, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: border }}>
-              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text fontSize="$3" color={subtext}>Category:</Text>
-                <Text fontSize="$3" color={text} fontWeight="500">{tx.category}</Text>
-              </RNView>
-              {tx.vendor && (
-                <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                  <Text fontSize="$3" color={subtext}>Vendor:</Text>
-                  <Text fontSize="$3" color={text} fontWeight="500">{tx.vendor}</Text>
-                </RNView>
-              )}
-              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text fontSize="$3" color={subtext}>Date:</Text>
-                <Text fontSize="$3" color={text} fontWeight="500">
-                  {new Date(tx.date).toLocaleDateString('en-US', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}
-                </Text>
-              </RNView>
-            </RNView>
-          )}
-        </View>
-      </TouchableOpacity>
+                {/* Expanded details with Tamagui animation */}
+                {isExpanded && (
+                  <View
+                    marginTop="$3"
+                    paddingTop="$3"
+                    borderTopWidth={1}
+                    borderTopColor={border}
+                    animation="quick"
+                    enterStyle={{
+                      opacity: 0,
+                      height: 0,
+                    }}
+                    animateOnly={['opacity', 'height']}
+                  >
+                    <View flexDirection="row" justifyContent="space-between" marginBottom="$2">
+                      <Text fontSize="$3" color={subtext}>Date:</Text>
+                      <Text fontSize="$3" color={text}>{new Date(tx.date).toLocaleDateString()}</Text>
+                    </View>
+                    <View flexDirection="row" justifyContent="space-between" marginBottom="$2">
+                      <Text fontSize="$3" color={subtext}>Time:</Text>
+                      <Text fontSize="$3" color={text}>{new Date(tx.date).toLocaleTimeString()}</Text>
+                    </View>
+                    {tx.notes && (
+                      <View marginTop="$2">
+                        <Text fontSize="$3" color={subtext} marginBottom="$1">Notes:</Text>
+                        <Text fontSize="$3" color={text}>{tx.notes}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </View>
     );
   };
 
-  // Render grouped transactions
+  // Render grouped transactions with staggered animations
   const renderGroupedTransactions = () => {
+    let globalIndex = 0; // Track global index for staggered animations
+    
     return Object.entries(groupedTransactions).map(([groupName, transactions]) => {
       if (transactions.length === 0) return null;
 
@@ -288,7 +337,11 @@ const RecentTransactions = () => {
           <Text fontSize="$2" fontWeight="700" color={subtext} textTransform="uppercase">
             {groupName}
           </Text>
-          {transactions.map(renderTransaction)}
+          {transactions.map((tx, localIndex) => {
+            const result = renderTransaction(tx, globalIndex);
+            globalIndex++;
+            return result;
+          })}
         </RNView>
       );
     });

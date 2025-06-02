@@ -1,168 +1,269 @@
 import React from 'react';
-import { View as RNView, TouchableOpacity } from 'react-native';
+import { TouchableOpacity, View as RNView, Text as RNText, StyleSheet } from 'react-native';
 import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { hapticFeedback } from '../utils/haptics';
+import { useToast } from '../components/Toast';
 
-// Define the type for the navigation stack
+// Define navigation types
 type RootStackParamList = {
   Home: undefined;
-  ExpenseDetail: undefined;
   ExpensesList: undefined;
   AddEditExpense: undefined;
-  Categories: undefined;
   Reports: undefined;
-  Settings: undefined;
-  About: undefined;
+  Categories: undefined;
 };
 
-// QuickActions component with simplified Tamagui design
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+// QuickActions component with fallback styling for maximum reliability
 interface QuickActionsProps {
   onUploadPress: () => void;
   isUploading?: boolean;
 }
 
+// Fallback styles using StyleSheet
+const styles = StyleSheet.create({
+  container: {
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 24,
+  },
+  header: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  button: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 100,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  iconContainer: {
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  buttonSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  loadingIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#F59E0B',
+    borderRadius: 12,
+    width: 12,
+    height: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    fontSize: 8,
+    color: 'white',
+  },
+});
+
 const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress, isUploading = false }) => {
+  const navigation = useNavigation<NavigationProp>();
   const theme = useTheme();
-  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const toast = useToast();
 
-  // Action button component with simplified design
-  const ActionButton = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
-    isLoading = false,
-    isPrimary = false 
-  }: {
-    icon: string;
-    title: string;
-    subtitle: string;
-    onPress: () => void;
-    isLoading?: boolean;
-    isPrimary?: boolean;
-  }) => (
-    <TouchableOpacity
-      style={{ flex: 1 }}
-      onPress={onPress}
-      disabled={isLoading}
-    >
-      <View
-        padding="$4"
-        borderRadius="$6"
-        backgroundColor={isPrimary ? '#3B82F6' : theme.backgroundHover.val}
-        borderWidth={1}
-        borderColor={theme.borderColor.val}
-        minHeight={80}
-        justifyContent="center"
-        alignItems="center"
-      >
-        <RNView style={{ alignItems: 'center', gap: 8 }}>
-          <View
-            padding="$2"
-            borderRadius="$6"
-            backgroundColor={isPrimary ? 'rgba(255,255,255,0.2)' : 'white'}
-          >
-            <Ionicons 
-              name={isLoading ? "hourglass" : icon as any} 
-              size={24} 
-              color={isPrimary ? 'white' : '#3182ce'} 
-            />
-          </View>
-          <RNView style={{ alignItems: 'center' }}>
-            <Text 
-              fontSize="$4" 
-              fontWeight="600" 
-              color={isPrimary ? 'white' : theme.color.val}
-              textAlign="center"
-            >
-              {isLoading ? 'Processing...' : title}
-            </Text>
-            <Text 
-              fontSize="$2" 
-              color={isPrimary ? 'rgba(255,255,255,0.8)' : theme.color11?.val || '#64748B'}
-              textAlign="center"
-            >
-              {subtitle}
-            </Text>
-          </RNView>
-        </RNView>
-      </View>
-    </TouchableOpacity>
-  );
+  // Try to use theme colors, fallback to hardcoded values
+  let cardBg, border, text, subtext;
+  try {
+    cardBg = theme.backgroundHover?.val || '#F8F9FA';
+    border = theme.borderColor?.val || '#E5E7EB';
+    text = theme.color?.val || '#1F2937';
+    subtext = theme.color11?.val || '#64748B';
+  } catch (error) {
+    console.warn('QuickActions: Theme error, using fallbacks:', error);
+    cardBg = '#F8F9FA';
+    border = '#E5E7EB';
+    text = '#1F2937';
+    subtext = '#64748B';
+  }
 
-  return (
-    <View marginBottom="$6">
-      {/* Section Header */}
-      <Text 
-        fontSize="$5" 
-        fontWeight="600" 
-        color={theme.color.val} 
-        marginBottom="$4"
-        paddingHorizontal="$1"
-      >
-        Quick Actions
-      </Text>
+  // Action button data with enhanced styling
+  const actions = [
+    {
+      id: 'scan',
+      title: 'Scan Receipt',
+      subtitle: 'Camera & OCR',
+      icon: 'camera',
+      color: '#10B981',
+      bgColor: '#D1FAE5',
+      onPress: () => {
+        try {
+          hapticFeedback.buttonPress();
+          if (isUploading) {
+            toast.warning('Upload in Progress', 'Please wait for current upload to complete');
+            return;
+          }
+          onUploadPress();
+        } catch (error) {
+          console.error('QuickActions: Error in scan action:', error);
+        }
+      },
+      disabled: isUploading,
+    },
+    {
+      id: 'add',
+      title: 'Add Expense',
+      subtitle: 'Manual entry',
+      icon: 'add-circle',
+      color: '#3B82F6',
+      bgColor: '#DBEAFE',
+      onPress: () => {
+        try {
+          hapticFeedback.buttonPress();
+          navigation.navigate('AddEditExpense');
+        } catch (error) {
+          console.error('QuickActions: Error in add action:', error);
+        }
+      },
+      disabled: false,
+    },
+    {
+      id: 'reports',
+      title: 'View Reports',
+      subtitle: 'Analytics',
+      icon: 'bar-chart',
+      color: '#8B5CF6',
+      bgColor: '#EDE9FE',
+      onPress: () => {
+        try {
+          hapticFeedback.buttonPress();
+          navigation.navigate('Reports');
+        } catch (error) {
+          console.error('QuickActions: Error in reports action:', error);
+        }
+      },
+      disabled: false,
+    },
+    {
+      id: 'search',
+      title: 'Search',
+      subtitle: 'Find expenses',
+      icon: 'search',
+      color: '#F59E0B',
+      bgColor: '#FEF3C7',
+      onPress: () => {
+        try {
+          hapticFeedback.buttonPress();
+          navigation.navigate('ExpensesList');
+        } catch (error) {
+          console.error('QuickActions: Error in search action:', error);
+        }
+      },
+      disabled: false,
+    },
+  ];
 
-      {/* 2x2 Grid Layout */}
-      <RNView style={{ gap: 12 }}>
-        {/* Top Row */}
-        <RNView style={{ flexDirection: 'row', gap: 12 }}>
-          <ActionButton
-            icon="camera"
-            title="Scan Receipt"
-            subtitle="Auto-extract data"
-            onPress={onUploadPress}
-            isPrimary={true}
-            isLoading={isUploading}
-          />
-          <ActionButton
-            icon="add-circle"
-            title="Add Expense"
-            subtitle="Manual entry"
-            onPress={() => navigation.navigate('AddEditExpense')}
-          />
-        </RNView>
-
-        {/* Bottom Row */}
-        <RNView style={{ flexDirection: 'row', gap: 12 }}>
-          <ActionButton
-            icon="bar-chart"
-            title="View Reports"
-            subtitle="Insights & trends"
-            onPress={() => navigation.navigate('Reports')}
-          />
-          <ActionButton
-            icon="search"
-            title="Search"
-            subtitle="Find expenses"
-            onPress={() => navigation.navigate('ExpensesList')}
-          />
-        </RNView>
-      </RNView>
-
-      {/* Additional Quick Access */}
-      <RNView style={{ flexDirection: 'row', gap: 12, marginTop: 16, justifyContent: 'center' }}>
-        <TouchableOpacity onPress={() => navigation.navigate('Categories')}>
-          <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8 }}>
-            <Ionicons name="pricetag" size={16} color="#6b7280" />
-            <Text fontSize="$3" color={theme.color11?.val || '#64748B'} fontWeight="500">
-              Categories
-            </Text>
-          </RNView>
-        </TouchableOpacity>
+  // Simplified action button component with fallback styling
+  const ActionButton: React.FC<{ action: typeof actions[0]; index: number }> = ({ action, index }) => {
+    const handlePress = () => {
+      try {
+        if (action.disabled) {
+          hapticFeedback.error();
+          return;
+        }
         
-        <TouchableOpacity onPress={() => navigation.navigate('Settings')}>
-          <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8 }}>
-            <Ionicons name="settings-outline" size={16} color="#6b7280" />
-            <Text fontSize="$3" color={theme.color11?.val || '#64748B'} fontWeight="500">
-              Settings
-            </Text>
-          </RNView>
-        </TouchableOpacity>
+        // Success haptic feedback
+        hapticFeedback.success();
+        action.onPress();
+      } catch (error) {
+        console.error(`QuickActions: Error handling press for ${action.id}:`, error);
+      }
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={handlePress}
+        disabled={action.disabled}
+        activeOpacity={0.7}
+        style={[styles.button, action.disabled && styles.buttonDisabled]}
+      >
+        {/* Icon container */}
+        <RNView style={[styles.iconContainer, { backgroundColor: action.bgColor }]}>
+          <Ionicons
+            name={action.icon as keyof typeof Ionicons.glyphMap}
+            size={24}
+            color={action.color}
+          />
+          {/* Loading indicator for upload */}
+          {action.id === 'scan' && isUploading && (
+            <RNView style={styles.loadingIndicator}>
+              <RNText style={styles.loadingText}>⏳</RNText>
+            </RNView>
+          )}
+        </RNView>
+
+        {/* Text content */}
+        <RNText style={styles.buttonTitle}>
+          {action.title}
+        </RNText>
+        <RNText style={styles.buttonSubtitle}>
+          {action.subtitle}
+        </RNText>
+      </TouchableOpacity>
+    );
+  };
+
+  // Use fallback styling with StyleSheet
+  return (
+    <RNView style={styles.container}>
+      {/* Header */}
+      <RNText style={styles.header}>
+        Quick Actions
+      </RNText>
+
+      {/* Action buttons grid */}
+      <RNView>
+        {/* First row */}
+        <RNView style={styles.row}>
+          <ActionButton action={actions[0]} index={0} />
+          <ActionButton action={actions[1]} index={1} />
+        </RNView>
+        
+        {/* Second row */}
+        <RNView style={styles.row}>
+          <ActionButton action={actions[2]} index={2} />
+          <ActionButton action={actions[3]} index={3} />
+        </RNView>
       </RNView>
-    </View>
+    </RNView>
   );
 };
 
