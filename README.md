@@ -326,14 +326,98 @@ npm run android
 
 ## 📝 API Documentation
 
+### Authentication
+All API endpoints require JWT authentication via `Authorization: Bearer <token>` header.
+
+**Fixed Issues:**
+- ✅ Centralized authentication middleware across all routes
+- ✅ Consistent `req.user.id` handling 
+- ✅ Proper JWT token validation and error handling
+
 ### Endpoints
-- `GET /api/expenses` - Get all expenses
+
+#### Expenses
+- `GET /api/expenses` - Get all expenses for authenticated user
 - `POST /api/expenses` - Create new expense
 - `PUT /api/expenses/:id` - Update expense
 - `DELETE /api/expenses/:id` - Delete expense
-- `POST /api/receipts/upload` - Upload and process receipt
-- `GET /api/categories` - Get expense categories
-- `GET /api/analytics/summary` - Get expense summary
+
+#### Categories
+- `GET /api/categories` - Get expense categories with statistics
+  - **Query Parameters:**
+    - `period` (optional): `all-time` (default) | `current-month`
+  - **Response:** Categories with spending statistics for specified period
+  - **Example:** `GET /api/categories?period=current-month`
+- `POST /api/categories` - Create new category
+- `PUT /api/categories/:id` - Update category
+- `DELETE /api/categories/:id` - Delete category
+- `POST /api/categories/initialize` - Initialize default categories for new users
+- `POST /api/categories/reorder` - Reorder categories
+
+#### Receipts
+- `POST /api/receipts` - Upload and process receipt
+- `GET /api/receipts` - Get all receipts for authenticated user
+- `GET /api/receipts/:id` - Get specific receipt
+- `POST /api/receipts/:id/process` - Process receipt with OCR
+
+#### Analytics
+- `GET /api/analytics/summary` - Get expense summary and analytics
+
+### Data Consistency
+**Recent Fix:** Categories and expenses endpoints now return consistent transaction counts:
+- Both endpoints respect the same user authentication
+- Categories endpoint defaults to all-time data (matching expenses behavior)
+- Optional period filtering available for monthly budget views
+
+## 🔍 Troubleshooting
+
+### Common Issues & Solutions
+
+#### **Authentication Issues**
+**Problem:** `req.user.id` is undefined in backend logs
+**Solution:** ✅ Fixed - All routes now use centralized auth middleware
+
+**Problem:** JWT token errors or malformed tokens
+**Solution:** Check token format and ensure proper Bearer prefix
+
+#### **Data Inconsistency**
+**Problem:** Categories show different transaction counts than expenses
+**Solution:** ✅ Fixed - Categories endpoint now defaults to all-time data
+
+**Problem:** Categories showing 0 transactions despite having expenses
+**Solution:** ✅ Fixed - Authentication middleware now properly sets user ID
+
+#### **Development Setup**
+**Problem:** Backend not connecting to MongoDB
+**Solution:** 
+1. Ensure MongoDB is running locally or connection string is correct
+2. Check environment variables in `.env` file
+3. Verify network connectivity
+
+**Problem:** Frontend not connecting to backend
+**Solution:**
+1. Ensure backend is running on correct port (3001)
+2. Check IP address in frontend configuration
+3. Verify CORS settings if needed
+
+#### **Debugging Tips**
+- **Backend Logs:** Check console for detailed request/response logging
+- **Frontend Logs:** Use React Native debugger or console logs
+- **Database:** Use MongoDB Compass to inspect data directly
+- **Network:** Use network tab in debugger to inspect API calls
+
+### Debug Logging
+The backend includes comprehensive debug logging:
+```bash
+# Example backend logs
+🔍 GET /api/expenses/ - Debug info:
+  - req.user: { id: '...', email: '...' }
+  - Found expenses count: 50
+
+🔍 GET /api/categories/ - Debug info:
+  - Date range (all-time): All expenses included
+  - Category "Food & Dining": 14 transactions, $830.02
+```
 
 ## 🤝 Contributing
 
@@ -370,3 +454,23 @@ This project is licensed under the MIT License.
    - Pull to refresh
    - Haptic feedback on all buttons
    - Toast notifications for all actions
+
+## 🔧 **RECENT FIXES & IMPROVEMENTS**
+
+### ✅ **Authentication & Data Consistency Fix (Latest)**
+- **Fixed authentication middleware inconsistency** - Centralized auth middleware across all routes
+- **Resolved data discrepancy** between expenses and categories endpoints
+- **Enhanced categories endpoint** with flexible time period filtering (`?period=all-time|current-month`)
+- **Improved error handling** with detailed logging for debugging
+- **Consistent user ID handling** across all backend routes
+
+#### **What was fixed:**
+1. **Auth Middleware Issue**: Routes had duplicate auth middleware causing `req.user.id` to be undefined
+2. **Date Filtering Mismatch**: Categories showed only current month data while expenses showed all-time data
+3. **Data Consistency**: Now both endpoints return matching transaction counts
+
+#### **Technical Details:**
+- **Before**: Categories endpoint returned 5 transactions (current month only)
+- **After**: Categories endpoint returns 50 transactions (all-time by default)
+- **Backward Compatible**: Still supports `?period=current-month` for monthly budget views
+- **Centralized Auth**: All routes now use `backend/middleware/auth.js`

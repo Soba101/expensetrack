@@ -73,10 +73,12 @@ categorySchema.virtual('stats', {
 categorySchema.methods.getSpendingForPeriod = async function(startDate, endDate) {
   const Expense = mongoose.model('Expense');
   
+  // Match expenses by category name and user, not categoryId
   const result = await Expense.aggregate([
     {
       $match: {
-        categoryId: this._id,
+        category: this.name, // Match by category name
+        userId: this.userId, // Match by user to ensure data isolation (already ObjectId)
         date: {
           $gte: startDate,
           $lte: endDate

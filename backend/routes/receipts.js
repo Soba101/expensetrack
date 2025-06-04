@@ -3,33 +3,17 @@
 
 const express = require('express');
 const Receipt = require('../models/Receipt');
-const jwt = require('jsonwebtoken');
+const authMiddleware = require('../middleware/auth'); // Import centralized auth middleware
 const ocrService = require('../services/ocrService');
 
 const router = express.Router();
-
-// Middleware to verify JWT and attach user to request
-function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'No token provided' });
-  }
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: 'Invalid token' });
-  }
-}
 
 // Upload a new receipt
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { image, date, amount, description } = req.body;
     const receipt = new Receipt({
-      user: req.user.userId,
+      userId: req.user.id,
       image,
       date,
       amount,
@@ -45,7 +29,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // List receipts for the logged-in user
 router.get('/', authMiddleware, async (req, res) => {
   try {
-    const receipts = await Receipt.find({ user: req.user.userId }).sort({ date: -1 });
+    const receipts = await Receipt.find({ userId: req.user.id }).sort({ date: -1 });
     res.json(receipts);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
@@ -55,10 +39,10 @@ router.get('/', authMiddleware, async (req, res) => {
 // Get a specific receipt by ID
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    // First try to find receipt with current schema (has user field)
+    // First try to find receipt with current schema (has userId field)
     let receipt = await Receipt.findOne({ 
       _id: req.params.id, 
-      user: req.user.userId 
+      userId: req.user.id 
     });
     
     if (receipt) {
@@ -66,7 +50,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.json(receipt);
     }
     
-    // If not found, try to find legacy receipt (without user field)
+    // If not found, try to find legacy receipt (without userId field)
     // This handles old receipts that might not have user association
     const legacyReceipt = await Receipt.findOne({ _id: req.params.id });
     
@@ -79,7 +63,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       // Transform legacy format to current format for API response
       const transformedReceipt = {
         _id: legacyReceipt._id,
-        user: req.user.userId, // Associate with current user for security
+        userId: req.user.id, // Associate with current user for security
         image: `data:${legacyReceipt.mimetype};base64,${legacyReceipt.data}`,
         date: legacyReceipt.createdAt || new Date(),
         amount: 0, // Legacy receipts might not have amount
@@ -106,12 +90,12 @@ router.get('/:id', authMiddleware, async (req, res) => {
 // Process receipt with OCR
 router.post('/:id/process', authMiddleware, async (req, res) => {
   try {
-    console.log(`🔍 Processing receipt ${req.params.id} for user ${req.user.userId}`);
+    console.log(`🔍 Processing receipt ${req.params.id} for user ${req.user.id}`);
     
-    // Find the receipt
-    const receipt = await Receipt.findOne({ 
-      _id: req.params.id, 
-      user: req.user.userId 
+    // Find the receipt and verify ownership
+    const receipt = await Receipt.findOne({
+      _id: req.params.id,
+      userId: req.user.id
     });
     
     if (!receipt) {

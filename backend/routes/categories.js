@@ -3,25 +3,51 @@ const router = express.Router();
 const Category = require('../models/Category');
 const Expense = require('../models/Expense');
 const auth = require('../middleware/auth');
+const mongoose = require('mongoose');
 
 // Apply authentication middleware to all routes
 router.use(auth);
 
 // GET /api/categories - Get all categories for the authenticated user
 // Returns categories sorted by order, with spending statistics
+// Query params: period ('current-month' | 'all-time') - defaults to 'all-time'
 router.get('/', async (req, res) => {
   try {
-    const categories = await Category.find({ userId: req.user.id })
+    console.log('🔍 GET /api/categories/ - Debug info:');
+    console.log('  - req.user:', req.user);
+    console.log('  - req.user.id:', req.user.id);
+    
+    // Convert string ID to ObjectId for database query
+    const userObjectId = new mongoose.Types.ObjectId(req.user.id);
+    console.log('  - userObjectId:', userObjectId);
+    
+    const categories = await Category.find({ userId: userObjectId })
       .sort({ order: 1, name: 1 });
 
-    // Calculate spending statistics for each category (current month)
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    console.log('  - Found categories count:', categories.length);
+
+    // Determine date range based on query parameter
+    const period = req.query.period || 'all-time'; // Default to all-time
+    let startDate, endDate;
+    
+    if (period === 'current-month') {
+      // Calculate current month statistics
+      const now = new Date();
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      console.log('  - Date range (current month):', startDate, 'to', endDate);
+    } else {
+      // All-time statistics - use very wide date range
+      startDate = new Date('1900-01-01');
+      endDate = new Date('2100-12-31');
+      console.log('  - Date range (all-time): All expenses included');
+    }
 
     const categoriesWithStats = await Promise.all(
       categories.map(async (category) => {
-        const stats = await category.getSpendingForPeriod(startOfMonth, endOfMonth);
+        const stats = await category.getSpendingForPeriod(startDate, endDate);
+        
+        console.log(`  - Category "${category.name}": ${stats.transactionCount} transactions, $${stats.totalSpent}`);
         
         return {
           _id: category._id,
@@ -35,14 +61,16 @@ router.get('/', async (req, res) => {
           updatedAt: category.updatedAt,
           currentMonthSpent: stats.totalSpent,
           currentMonthTransactions: stats.transactionCount,
-          budgetUsed: category.budget ? (stats.totalSpent / category.budget) * 100 : 0
+          budgetUsed: category.budget ? (stats.totalSpent / category.budget) * 100 : 0,
+          period: period // Include the period in response for clarity
         };
       })
     );
 
     res.json({
       success: true,
-      data: categoriesWithStats
+      data: categoriesWithStats,
+      period: period
     });
   } catch (error) {
     console.error('Get categories error:', error);
