@@ -63,7 +63,7 @@ const AuthenticatedStack = () => (
     />
 
     <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
-    <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ title: 'All Expenses' }} />
+    <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ headerShown: false }} />
     <Stack.Screen name="AddEditExpense" component={AddEditExpenseScreen} options={{ headerShown: false }} />
     <Stack.Screen name="Categories" component={CategoryManagementScreen} options={{ title: 'Manage Categories' }} />
     <Stack.Screen name="CategoriesView" component={CategoriesScreen} options={{ title: 'Categories Overview' }} />

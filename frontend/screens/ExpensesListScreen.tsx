@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { FlatList, RefreshControl, TextInput, TouchableOpacity, View as RNView } from 'react-native';
+import { FlatList, RefreshControl, TextInput, TouchableOpacity, View as RNView, Alert } from 'react-native';
 import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -8,13 +8,16 @@ import * as expenseService from '../services/expenseService';
 import { hapticFeedback } from '../utils/haptics';
 import { useToast } from '../components/Toast';
 import { useExpenseData } from '../context/ExpenseDataContext';
+import CategoryIcon from '../components/design-system/CategoryIcon';
+import EmptyState from '../components/design-system/EmptyState';
+import StatCard from '../components/design-system/StatCard';
 
 // Define the navigation stack type
 type RootStackParamList = {
   Home: undefined;
   ExpenseDetail: { expenseId: string };
   ExpensesList: undefined;
-  AddEditExpense: undefined;
+  AddEditExpense: { expenseId?: string } | undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ExpensesList'>;
@@ -33,29 +36,23 @@ interface Expense {
   updatedAt: string;
 }
 
-// ExpensesListScreen: Comprehensive list of all expenses with search, filter, and sort
+// ExpensesListScreen: Redesigned with Apple-inspired design and dynamic data
+// Features: Advanced filtering, search, sorting, swipe actions, loading states
 const ExpensesListScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
+  const toast = useToast();
 
-  // Use centralized data context instead of local state
-  const { expenses, loading, refreshing, refreshData } = useExpenseData();
+  // Use centralized data context for dynamic data
+  const { expenses, loading, refreshing, refreshData, deleteExpense } = useExpenseData();
 
-  // State management for UI only
+  // State management for UI interactions
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('date'); // date, amount, description
   const [sortOrder, setSortOrder] = useState('desc'); // asc, desc
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Use Tamagui theme system instead of Native Base
-  const theme = useTheme();
-  const bg = theme.background.val;
-  const cardBg = theme.backgroundHover.val;
-  const border = theme.borderColor.val;
-  const heading = theme.color.val;
-  const text = theme.color.val;
-  const subtext = theme.colorHover.val;
-
-  // Load expenses when screen comes into focus using context
+  // Load expenses when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
       refreshData();
@@ -64,7 +61,7 @@ const ExpensesListScreen: React.FC = () => {
 
   // Handle pull-to-refresh with haptic feedback
   const onRefresh = () => {
-    hapticFeedback.pullToRefresh(); // Add haptic feedback
+    hapticFeedback.pullToRefresh();
     refreshData();
   };
 
@@ -120,12 +117,20 @@ const ExpensesListScreen: React.FC = () => {
     return filtered;
   }, [expenses, searchQuery, selectedCategory, sortBy, sortOrder]);
 
-  // Calculate total amount for filtered expenses
+  // Calculate statistics for filtered expenses
   const totalAmount = useMemo(() => {
     return filteredAndSortedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   }, [filteredAndSortedExpenses]);
 
-  // Format date for display
+  const averageAmount = useMemo(() => {
+    return filteredAndSortedExpenses.length > 0 ? totalAmount / filteredAndSortedExpenses.length : 0;
+  }, [totalAmount, filteredAndSortedExpenses.length]);
+
+  const receiptsCount = useMemo(() => {
+    return filteredAndSortedExpenses.filter(expense => expense.receiptId).length;
+  }, [filteredAndSortedExpenses]);
+
+  // Helper functions
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -135,29 +140,55 @@ const ExpensesListScreen: React.FC = () => {
     });
   };
 
-  // Format currency for display
-  const formatCurrency = (amount: number) => {
-    return `$${amount.toFixed(2)}`;
+  const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffInMs = now.getTime() - date.getTime();
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 0) return 'Today';
+    if (diffInDays === 1) return 'Yesterday';
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+    return formatDate(dateString);
   };
 
-  // Get icon for category
-  const getCategoryIcon = (category?: string) => {
-    if (!category) return 'receipt-outline';
-    
-    const categoryLower = category.toLowerCase();
-    if (categoryLower.includes('food') || categoryLower.includes('restaurant')) return 'restaurant-outline';
-    if (categoryLower.includes('travel') || categoryLower.includes('transport')) return 'car-outline';
-    if (categoryLower.includes('office') || categoryLower.includes('work')) return 'briefcase-outline';
-    if (categoryLower.includes('health') || categoryLower.includes('medical')) return 'medical-outline';
-    if (categoryLower.includes('entertainment') || categoryLower.includes('fun')) return 'game-controller-outline';
-    return 'receipt-outline';
+  // Handle expense deletion with confirmation
+  const handleDeleteExpense = (expense: Expense) => {
+    hapticFeedback.warning();
+    Alert.alert(
+      'Delete Expense',
+      `Are you sure you want to delete "${expense.description}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              deleteExpense(expense._id);
+              hapticFeedback.success();
+              toast.success('Expense Deleted', 'The expense has been successfully deleted.');
+            } catch (error) {
+              hapticFeedback.error();
+              toast.error('Delete Failed', 'Unable to delete expense. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
-  // Render individual expense item with haptic feedback
+  // Render individual expense item with swipe actions
   const renderExpenseItem = ({ item }: { item: Expense }) => {
     const handlePress = () => {
-      hapticFeedback.buttonPress(); // Add haptic feedback for navigation
+      hapticFeedback.buttonPress();
       navigation.navigate('ExpenseDetail', { expenseId: item._id });
+    };
+
+    const handleEdit = () => {
+      hapticFeedback.buttonPress();
+      // Navigate to edit screen with expense data
+      (navigation as any).navigate('AddEditExpense', { expenseId: item._id });
     };
 
     return (
@@ -167,78 +198,84 @@ const ExpensesListScreen: React.FC = () => {
         activeOpacity={0.7}
       >
         <View
-          padding="$4"
-          backgroundColor={cardBg}
-          borderRadius="$6"
-          borderWidth={1}
-          borderColor={border}
-          shadowColor="$shadowColor"
-          shadowOffset={{ width: 0, height: 2 }}
-          shadowOpacity={0.1}
-          shadowRadius={4}
+          backgroundColor="white"
+          borderRadius={12}
+          padding={16}
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 6,
+            elevation: 1,
+          }}
         >
-          <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-            {/* Left side: Icon and details */}
-            <RNView style={{ flexDirection: 'row', gap: 12, flex: 1, alignItems: 'flex-start' }}>
-              <View
-                padding="$2"
-                backgroundColor="#EBF8FF"
-                borderRadius="$6"
-                alignItems="center"
-                justifyContent="center"
-              >
-                <Ionicons
-                  name={getCategoryIcon(item.category) as keyof typeof Ionicons.glyphMap}
-                  size={20}
-                  color="#2563EB"
-                />
-              </View>
-              
-              <RNView style={{ flex: 1, gap: 4 }}>
-                <Text fontSize="$4" fontWeight="600" color={heading} numberOfLines={2}>
-                  {item.description}
+          <RNView style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+            {/* Category Icon */}
+            <CategoryIcon category={item.category} size={40} iconSize={20} />
+            
+            {/* Expense Details */}
+            <RNView style={{ flex: 1, minWidth: 0 }}>
+              <Text fontSize={17} fontWeight="500" color="#000000" numberOfLines={1}>
+                {item.description}
+              </Text>
+              <RNView style={{ marginTop: 2 }}>
+                <Text fontSize={15} color="#8E8E93" numberOfLines={1}>
+                  {item.category || 'Other'}
+                  {item.vendor && ` • ${item.vendor}`}
                 </Text>
-                
-                {item.vendor && (
-                  <Text fontSize="$3" color={subtext} numberOfLines={1}>
-                    {item.vendor}
-                  </Text>
-                )}
-                
-                <RNView style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Text fontSize="$2" color={subtext}>
-                    {formatDate(item.date)}
-                  </Text>
-                  
-                  {item.category && (
-                    <View
-                      backgroundColor="#EBF8FF"
-                      paddingHorizontal="$2"
-                      paddingVertical="$1"
-                      borderRadius="$2"
-                    >
-                      <Text fontSize="$2" color="#1D4ED8" fontWeight="500">
-                        {item.category}
-                      </Text>
-                    </View>
-                  )}
-                  
-                  {item.receiptId && (
-                    <Ionicons
-                      name="camera"
-                      size={12}
-                      color="#10B981"
-                    />
-                  )}
-                </RNView>
               </RNView>
+              <Text fontSize={13} color="#8E8E93" marginTop={4}>
+                {getRelativeTime(item.date)}
+              </Text>
             </RNView>
             
-            {/* Right side: Amount */}
-            <RNView style={{ alignItems: 'flex-end', gap: 4 }}>
-              <Text fontSize="$5" fontWeight="bold" color={heading}>
-                {formatCurrency(item.amount)}
+            {/* Amount and Actions */}
+            <RNView style={{ alignItems: 'flex-end', minWidth: 80 }}>
+              <Text fontSize={17} fontWeight="600" color="#000000">
+                ${item.amount.toFixed(2)}
               </Text>
+              {item.receiptId && (
+                <RNView style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  marginTop: 4,
+                  backgroundColor: '#D1FAE5',
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                }}>
+                  <Ionicons name="receipt" size={10} color="#059669" />
+                  <Text fontSize={10} color="#059669" marginLeft={2}>
+                    Receipt
+                  </Text>
+                </RNView>
+              )}
+              
+              {/* Quick Actions */}
+              <RNView style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                <TouchableOpacity
+                  onPress={handleEdit}
+                  style={{
+                    backgroundColor: '#F2F2F7',
+                    padding: 6,
+                    borderRadius: 6,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="pencil" size={12} color="#007AFF" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDeleteExpense(item)}
+                  style={{
+                    backgroundColor: '#FEE2E2',
+                    padding: 6,
+                    borderRadius: 6,
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="trash" size={12} color="#DC2626" />
+                </TouchableOpacity>
+              </RNView>
             </RNView>
           </RNView>
         </View>
@@ -246,233 +283,340 @@ const ExpensesListScreen: React.FC = () => {
     );
   };
 
-  // Render empty state
-  const renderEmptyState = () => (
-    <RNView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-      <Ionicons
-        name="receipt-outline"
-        size={96}
-        color={subtext}
-        style={{ marginBottom: 16 }}
-      />
-      <Text fontSize="$5" fontWeight="600" color={heading} marginBottom="$2">
-        No Expenses Found
-      </Text>
-      <Text fontSize="$4" color={subtext} textAlign="center" marginBottom="$6">
-        {searchQuery || selectedCategory
-          ? 'Try adjusting your search or filters'
-          : 'Start by adding your first expense'}
-      </Text>
-      <TouchableOpacity
-        onPress={() => navigation.navigate('AddEditExpense')}
-        style={{
-          backgroundColor: '#3B82F6',
-          paddingHorizontal: 20,
-          paddingVertical: 12,
-          borderRadius: 20,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: 8,
-        }}
-      >
-        <Ionicons name="add" size={16} color="white" />
-        <Text fontSize="$4" fontWeight="600" color="white">
-          Add Expense
-        </Text>
-      </TouchableOpacity>
-    </RNView>
+  // Render loading skeleton
+  const renderLoadingSkeleton = () => (
+    <View style={{ paddingHorizontal: 20 }}>
+      {[...Array(5)].map((_, index) => (
+        <View
+          key={`skeleton-${index}`}
+          backgroundColor="white"
+          borderRadius={12}
+          padding={16}
+          marginBottom={12}
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 6,
+            elevation: 1,
+          }}
+        >
+          <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <View
+              width={40}
+              height={40}
+              borderRadius={20}
+              backgroundColor="#F2F2F7"
+            />
+            <RNView style={{ flex: 1 }}>
+              <View
+                height={16}
+                backgroundColor="#F2F2F7"
+                borderRadius={4}
+                marginBottom={4}
+                width="70%"
+              />
+              <View
+                height={12}
+                backgroundColor="#F2F2F7"
+                borderRadius={4}
+                width="50%"
+              />
+            </RNView>
+            <View
+              height={16}
+              backgroundColor="#F2F2F7"
+              borderRadius={4}
+              width={60}
+            />
+          </RNView>
+        </View>
+      ))}
+    </View>
   );
 
-  // Show loading spinner
-  console.log('Render: loading state is:', loading);
-  if (loading) {
-    console.log('Rendering loading screen');
-    return (
-      <RNView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: bg }}>
-        <Text color="#3B82F6">⏳</Text>
-        <Text marginTop="$4" color={text}>Loading expenses...</Text>
-      </RNView>
-    );
-  }
-
   return (
-    <RNView style={{ flex: 1, backgroundColor: bg }}>
-      {/* Header with summary */}
-      <View padding="$4" backgroundColor={cardBg} borderBottomWidth={1} borderBottomColor={border}>
-        <RNView style={{ gap: 12 }}>
-          {/* Summary stats */}
-          <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            <RNView>
-              <Text fontSize="$3" color={subtext}>
-                {filteredAndSortedExpenses.length} expense{filteredAndSortedExpenses.length !== 1 ? 's' : ''}
-              </Text>
-              <Text fontSize="$6" fontWeight="bold" color={heading}>
-                {formatCurrency(totalAmount)}
-              </Text>
-            </RNView>
-            
-            <TouchableOpacity
-              onPress={() => navigation.navigate('AddEditExpense')}
-              style={{
-                backgroundColor: '#3B82F6',
-                paddingHorizontal: 16,
-                paddingVertical: 8,
-                borderRadius: 20,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-              }}
-            >
-              <Ionicons name="add" size={12} color="white" />
-              <Text fontSize="$3" fontWeight="600" color="white">
-                Add
-              </Text>
-            </TouchableOpacity>
-          </RNView>
+    <View style={{ flex: 1, backgroundColor: '#F2F2F7' }}>
+      {/* Header */}
+      <View style={{ paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 }}>
+        {/* Back Button Row */}
+        <RNView style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: 'rgba(0, 122, 255, 0.1)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={20} color="#007AFF" />
+          </TouchableOpacity>
+        </RNView>
 
-          {/* Search bar */}
-          <RNView style={{ position: 'relative' }}>
+        {/* Title and Add Button Row */}
+        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <RNView style={{ flex: 1 }}>
+            <Text fontSize={34} fontWeight="bold" color="#000000" marginBottom={4}>
+              All Expenses
+            </Text>
+            <Text fontSize={17} color="#8E8E93" fontWeight="400">
+              {filteredAndSortedExpenses.length} {filteredAndSortedExpenses.length === 1 ? 'expense' : 'expenses'}
+              {searchQuery || selectedCategory ? ' (filtered)' : ''}
+            </Text>
+          </RNView>
+          
+          {/* Add Expense Button */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('AddEditExpense')}
+            style={{
+              backgroundColor: '#007AFF',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="add" size={16} color="white" />
+            <Text color="white" fontWeight="600">Add</Text>
+          </TouchableOpacity>
+        </RNView>
+      </View>
+
+      {/* Quick Stats */}
+      {!loading && filteredAndSortedExpenses.length > 0 && (
+        <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+          <RNView style={{ flexDirection: 'row', gap: 12 }}>
+            <StatCard
+              label="Total"
+              value={`$${totalAmount.toFixed(2)}`}
+              subtitle={`${filteredAndSortedExpenses.length} ${filteredAndSortedExpenses.length === 1 ? 'expense' : 'expenses'}`}
+              loading={loading}
+            />
+            <StatCard
+              label="Average"
+              value={`$${averageAmount.toFixed(0)}`}
+              subtitle="per expense"
+              loading={loading}
+            />
+            <StatCard
+              label="Receipts"
+              value={receiptsCount}
+              subtitle="scanned"
+              loading={loading}
+            />
+          </RNView>
+        </View>
+      )}
+
+      {/* Search and Filters */}
+      <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+        {/* Search Bar */}
+        <View
+          backgroundColor="white"
+          borderRadius={12}
+          padding={12}
+          marginBottom={12}
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.05,
+            shadowRadius: 6,
+            elevation: 1,
+          }}
+        >
+          <RNView style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+            <Ionicons name="search" size={20} color="#8E8E93" />
             <TextInput
               placeholder="Search expenses..."
               value={searchQuery}
               onChangeText={setSearchQuery}
               style={{
-                borderRadius: 20,
-                backgroundColor: bg,
-                borderWidth: 1,
-                borderColor: border,
-                paddingHorizontal: 40,
-                paddingVertical: 12,
-                fontSize: 16,
-                color: text,
+                flex: 1,
+                fontSize: 17,
+                color: '#000000',
+                paddingVertical: 4,
               }}
-              placeholderTextColor={subtext}
+              placeholderTextColor="#8E8E93"
             />
-            <RNView style={{ position: 'absolute', left: 12, top: 12 }}>
-              <Ionicons name="search" size={20} color={subtext} />
-            </RNView>
-            {searchQuery && (
+            {searchQuery.length > 0 && (
               <TouchableOpacity
                 onPress={() => setSearchQuery('')}
-                style={{ position: 'absolute', right: 12, top: 12 }}
+                activeOpacity={0.7}
               >
-                <Ionicons name="close-circle" size={20} color={subtext} />
+                <Ionicons name="close-circle" size={20} color="#8E8E93" />
               </TouchableOpacity>
             )}
           </RNView>
+        </View>
 
-          {/* Filters and sort */}
-          <RNView style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            {/* Category filter - Simplified */}
-            <RNView style={{ flex: 1, gap: 4 }}>
-              <Text fontSize="$2" color={subtext}>Category</Text>
-              <RNView style={{ gap: 4 }}>
+        {/* Filter Controls */}
+        <RNView style={{ flexDirection: 'row', gap: 12 }}>
+          {/* Category Filter */}
+          <TouchableOpacity
+            onPress={() => setShowFilters(!showFilters)}
+            style={{
+              flex: 1,
+              backgroundColor: selectedCategory ? '#007AFF' : 'white',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons 
+              name="filter" 
+              size={16} 
+              color={selectedCategory ? 'white' : '#007AFF'} 
+            />
+            <Text 
+              color={selectedCategory ? 'white' : '#007AFF'} 
+              fontWeight="600"
+            >
+              {selectedCategory || 'Filter'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* Sort Button */}
+          <TouchableOpacity
+            onPress={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            style={{
+              backgroundColor: 'white',
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons 
+              name={sortOrder === 'asc' ? 'arrow-up' : 'arrow-down'} 
+              size={16} 
+              color="#007AFF" 
+            />
+            <Text color="#007AFF" fontWeight="600">
+              {sortBy === 'date' ? 'Date' : sortBy === 'amount' ? 'Amount' : 'Name'}
+            </Text>
+          </TouchableOpacity>
+        </RNView>
+
+        {/* Category Filter Dropdown */}
+        {showFilters && (
+          <View
+            backgroundColor="white"
+            borderRadius={12}
+            padding={12}
+            marginTop={12}
+            style={{
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 1 },
+              shadowOpacity: 0.05,
+              shadowRadius: 6,
+              elevation: 1,
+            }}
+          >
+            <Text fontSize={15} fontWeight="600" color="#000000" marginBottom={8}>
+              Filter by Category
+            </Text>
+            <RNView style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setSelectedCategory('');
+                  setShowFilters(false);
+                }}
+                style={{
+                  backgroundColor: !selectedCategory ? '#007AFF' : '#F2F2F7',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                }}
+                activeOpacity={0.8}
+              >
+                <Text 
+                  color={!selectedCategory ? 'white' : '#8E8E93'} 
+                  fontWeight="500"
+                >
+                  All
+                </Text>
+              </TouchableOpacity>
+              {categories.map((category) => (
                 <TouchableOpacity
-                  onPress={() => setSelectedCategory('')}
-                  style={{
-                    padding: 8,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: !selectedCategory ? '#3B82F6' : border,
-                    backgroundColor: !selectedCategory ? '#EBF8FF' : bg,
+                  key={category}
+                  onPress={() => {
+                    setSelectedCategory(category);
+                    setShowFilters(false);
                   }}
+                  style={{
+                    backgroundColor: selectedCategory === category ? '#007AFF' : '#F2F2F7',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 6,
+                  }}
+                  activeOpacity={0.8}
                 >
                   <Text 
-                    fontSize="$2" 
-                    color={!selectedCategory ? '#1D4ED8' : text}
-                    fontWeight={!selectedCategory ? '600' : '400'}
+                    color={selectedCategory === category ? 'white' : '#8E8E93'} 
+                    fontWeight="500"
                   >
-                    All Categories
+                    {category}
                   </Text>
                 </TouchableOpacity>
-                {categories.slice(0, 3).map(category => (
-                  <TouchableOpacity
-                    key={category}
-                    onPress={() => setSelectedCategory(category)}
-                    style={{
-                      padding: 8,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: selectedCategory === category ? '#3B82F6' : border,
-                      backgroundColor: selectedCategory === category ? '#EBF8FF' : bg,
-                    }}
-                  >
-                    <Text 
-                      fontSize="$2" 
-                      color={selectedCategory === category ? '#1D4ED8' : text}
-                      fontWeight={selectedCategory === category ? '600' : '400'}
-                    >
-                      {category}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </RNView>
+              ))}
             </RNView>
-
-            {/* Sort options - Simplified */}
-            <RNView style={{ flex: 1, gap: 4 }}>
-              <Text fontSize="$2" color={subtext}>Sort</Text>
-              <RNView style={{ gap: 4 }}>
-                {[
-                  { label: 'Newest First', value: 'date-desc' },
-                  { label: 'Highest Amount', value: 'amount-desc' },
-                  { label: 'A-Z', value: 'description-asc' },
-                ].map(option => {
-                  const isSelected = `${sortBy}-${sortOrder}` === option.value;
-                  return (
-                    <TouchableOpacity
-                      key={option.value}
-                      onPress={() => {
-                        const [newSortBy, newSortOrder] = option.value.split('-');
-                        setSortBy(newSortBy || 'date');
-                        setSortOrder(newSortOrder || 'desc');
-                      }}
-                      style={{
-                        padding: 8,
-                        borderRadius: 8,
-                        borderWidth: 1,
-                        borderColor: isSelected ? '#3B82F6' : border,
-                        backgroundColor: isSelected ? '#EBF8FF' : bg,
-                      }}
-                    >
-                      <Text 
-                        fontSize="$2" 
-                        color={isSelected ? '#1D4ED8' : text}
-                        fontWeight={isSelected ? '600' : '400'}
-                      >
-                        {option.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </RNView>
-            </RNView>
-          </RNView>
-        </RNView>
-      </View>
-
-      {/* Expenses list */}
-      <View flex={1} padding="$4">
-        {filteredAndSortedExpenses.length === 0 ? (
-          renderEmptyState()
-        ) : (
-          <FlatList
-            data={filteredAndSortedExpenses}
-            renderItem={renderExpenseItem}
-            keyExtractor={(item) => item._id}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={['#3182ce']}
-                tintColor="#3182ce"
-              />
-            }
-          />
+          </View>
         )}
       </View>
-    </RNView>
+
+      {/* Expenses List */}
+      {loading ? (
+        renderLoadingSkeleton()
+      ) : filteredAndSortedExpenses.length === 0 ? (
+        <View style={{ paddingHorizontal: 20 }}>
+          <EmptyState
+            icon="receipt-outline"
+            title={searchQuery || selectedCategory ? "No matching expenses" : "No expenses yet"}
+            description={searchQuery || selectedCategory ? "Try adjusting your search or filters" : "Start by adding your first expense"}
+            buttonText={searchQuery || selectedCategory ? "Clear Filters" : "Add Expense"}
+            onButtonPress={() => {
+              if (searchQuery || selectedCategory) {
+                setSearchQuery('');
+                setSelectedCategory('');
+                setShowFilters(false);
+              } else {
+                navigation.navigate('AddEditExpense');
+              }
+            }}
+          />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredAndSortedExpenses}
+          renderItem={renderExpenseItem}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#007AFF"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
   );
 };
 
