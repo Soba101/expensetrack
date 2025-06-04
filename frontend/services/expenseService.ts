@@ -82,6 +82,52 @@ export interface RecentTransaction {
   isUnusual: boolean;
 }
 
+// Interface for time period options
+export type TimePeriod = 'week' | 'month' | 'quarter' | 'year' | 'all';
+
+// Interface for trend data point
+export interface TrendDataPoint {
+  date: string;
+  amount: number;
+  count: number;
+}
+
+// Interface for vendor analytics
+export interface VendorAnalytics {
+  name: string;
+  totalSpent: number;
+  transactionCount: number;
+  averageAmount: number;
+  lastTransaction: string;
+  categories: string[];
+}
+
+// Interface for category analytics
+export interface CategoryAnalytics {
+  name: string;
+  totalSpent: number;
+  transactionCount: number;
+  averageAmount: number;
+  percentage: number;
+  trend: 'up' | 'down' | 'stable';
+  color: string;
+}
+
+// Interface for reports analytics data
+export interface ReportsAnalytics {
+  summary: {
+    totalSpent: number;
+    transactionCount: number;
+    averageTransaction: number;
+    topCategory: string;
+    topVendor: string;
+  };
+  trends: TrendDataPoint[];
+  categories: CategoryAnalytics[];
+  vendors: VendorAnalytics[];
+  timePeriod: TimePeriod;
+}
+
 // Function to save expense (with optional receipt)
 export const saveExpense = async (expenseData: ExpenseData): Promise<ExpenseResponse> => {
   try {
@@ -364,6 +410,301 @@ export const getCategories = async (): Promise<string[]> => {
     return Array.from(categories).sort();
   } catch (error) {
     console.error('Get categories error:', error);
+    throw error;
+  }
+};
+
+// Function to get analytics data for reports screen
+export const getReportsAnalytics = async (timePeriod: TimePeriod = 'month'): Promise<ReportsAnalytics> => {
+  try {
+    const expenses = await getExpenses();
+    
+    // Calculate date range based on time period
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (timePeriod) {
+      case 'week':
+        startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        break;
+      case 'quarter':
+        startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+        break;
+      case 'all':
+      default:
+        startDate = new Date(0); // Beginning of time
+        break;
+    }
+    
+    // Filter expenses by time period
+    const filteredExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= startDate;
+    });
+    
+    // Calculate summary statistics
+    const totalSpent = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const transactionCount = filteredExpenses.length;
+    const averageTransaction = transactionCount > 0 ? totalSpent / transactionCount : 0;
+    
+    // Generate trend data (daily aggregation)
+    const trendData = generateTrendData(filteredExpenses, timePeriod);
+    
+    // Generate category analytics
+    const categoryAnalytics = generateCategoryAnalytics(filteredExpenses, expenses);
+    
+    // Generate vendor analytics
+    const vendorAnalytics = generateVendorAnalytics(filteredExpenses);
+    
+    // Find top category and vendor
+    const topCategory = categoryAnalytics.length > 0 ? categoryAnalytics[0].name : 'None';
+    const topVendor = vendorAnalytics.length > 0 ? vendorAnalytics[0].name : 'None';
+    
+    return {
+      summary: {
+        totalSpent,
+        transactionCount,
+        averageTransaction,
+        topCategory,
+        topVendor
+      },
+      trends: trendData,
+      categories: categoryAnalytics,
+      vendors: vendorAnalytics,
+      timePeriod
+    };
+  } catch (error) {
+    console.error('Get reports analytics error:', error);
+    throw error;
+  }
+};
+
+// Helper function to generate trend data
+const generateTrendData = (expenses: any[], timePeriod: TimePeriod): TrendDataPoint[] => {
+  // Group expenses by date
+  const dailyData: { [key: string]: { amount: number; count: number } } = {};
+  
+  expenses.forEach(expense => {
+    const date = new Date(expense.date).toISOString().split('T')[0]; // YYYY-MM-DD format
+    if (!dailyData[date]) {
+      dailyData[date] = { amount: 0, count: 0 };
+    }
+    dailyData[date].amount += expense.amount;
+    dailyData[date].count += 1;
+  });
+  
+  // Convert to array and sort by date
+  const trendPoints = Object.entries(dailyData)
+    .map(([date, data]) => ({
+      date,
+      amount: data.amount,
+      count: data.count
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  
+  // For longer periods, aggregate by week or month to reduce data points
+  if (timePeriod === 'quarter' || timePeriod === 'year' || timePeriod === 'all') {
+    return aggregateByWeek(trendPoints);
+  }
+  
+  return trendPoints;
+};
+
+// Helper function to aggregate trend data by week
+const aggregateByWeek = (dailyData: TrendDataPoint[]): TrendDataPoint[] => {
+  const weeklyData: { [key: string]: { amount: number; count: number } } = {};
+  
+  dailyData.forEach(point => {
+    const date = new Date(point.date);
+    const weekStart = new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay());
+    const weekKey = weekStart.toISOString().split('T')[0];
+    
+    if (!weeklyData[weekKey]) {
+      weeklyData[weekKey] = { amount: 0, count: 0 };
+    }
+    weeklyData[weekKey].amount += point.amount;
+    weeklyData[weekKey].count += point.count;
+  });
+  
+  return Object.entries(weeklyData)
+    .map(([date, data]) => ({
+      date,
+      amount: data.amount,
+      count: data.count
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+};
+
+// Helper function to generate category analytics
+const generateCategoryAnalytics = (currentExpenses: any[], allExpenses: any[]): CategoryAnalytics[] => {
+  // Calculate current period category totals
+  const categoryTotals: { [key: string]: { amount: number; count: number } } = {};
+  
+  currentExpenses.forEach(expense => {
+    const category = expense.category || 'Other';
+    if (!categoryTotals[category]) {
+      categoryTotals[category] = { amount: 0, count: 0 };
+    }
+    categoryTotals[category].amount += expense.amount;
+    categoryTotals[category].count += 1;
+  });
+  
+  // Calculate previous period for trend analysis
+  const currentPeriodStart = currentExpenses.length > 0 
+    ? new Date(Math.min(...currentExpenses.map(e => new Date(e.date).getTime())))
+    : new Date();
+  const periodLength = Date.now() - currentPeriodStart.getTime();
+  const previousPeriodStart = new Date(currentPeriodStart.getTime() - periodLength);
+  
+  const previousExpenses = allExpenses.filter(expense => {
+    const expenseDate = new Date(expense.date);
+    return expenseDate >= previousPeriodStart && expenseDate < currentPeriodStart;
+  });
+  
+  const previousCategoryTotals: { [key: string]: number } = {};
+  previousExpenses.forEach(expense => {
+    const category = expense.category || 'Other';
+    previousCategoryTotals[category] = (previousCategoryTotals[category] || 0) + expense.amount;
+  });
+  
+  // Calculate total for percentages
+  const totalSpent = Object.values(categoryTotals).reduce((sum, cat) => sum + cat.amount, 0);
+  
+  // Category colors
+  const categoryColors = [
+    '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
+    '#06B6D4', '#84CC16', '#F97316', '#EC4899', '#6366F1'
+  ];
+  
+  // Convert to analytics format
+  const analytics = Object.entries(categoryTotals)
+    .map(([name, data], index) => {
+      const previousAmount = previousCategoryTotals[name] || 0;
+      let trend: 'up' | 'down' | 'stable' = 'stable';
+      
+      if (data.amount > previousAmount * 1.1) {
+        trend = 'up';
+      } else if (data.amount < previousAmount * 0.9) {
+        trend = 'down';
+      }
+      
+      return {
+        name,
+        totalSpent: data.amount,
+        transactionCount: data.count,
+        averageAmount: data.amount / data.count,
+        percentage: totalSpent > 0 ? (data.amount / totalSpent) * 100 : 0,
+        trend,
+        color: categoryColors[index % categoryColors.length]
+      };
+    })
+    .sort((a, b) => b.totalSpent - a.totalSpent);
+  
+  return analytics;
+};
+
+// Helper function to generate vendor analytics
+const generateVendorAnalytics = (expenses: any[]): VendorAnalytics[] => {
+  const vendorData: { [key: string]: {
+    amount: number;
+    count: number;
+    lastDate: string;
+    categories: Set<string>;
+  } } = {};
+  
+  expenses.forEach(expense => {
+    const vendor = expense.vendor || 'Unknown';
+    if (!vendorData[vendor]) {
+      vendorData[vendor] = {
+        amount: 0,
+        count: 0,
+        lastDate: expense.date,
+        categories: new Set()
+      };
+    }
+    
+    vendorData[vendor].amount += expense.amount;
+    vendorData[vendor].count += 1;
+    vendorData[vendor].categories.add(expense.category || 'Other');
+    
+    // Update last transaction date if this one is more recent
+    if (new Date(expense.date) > new Date(vendorData[vendor].lastDate)) {
+      vendorData[vendor].lastDate = expense.date;
+    }
+  });
+  
+  // Convert to analytics format and sort by total spent
+  return Object.entries(vendorData)
+    .map(([name, data]) => ({
+      name,
+      totalSpent: data.amount,
+      transactionCount: data.count,
+      averageAmount: data.amount / data.count,
+      lastTransaction: data.lastDate,
+      categories: Array.from(data.categories)
+    }))
+    .sort((a, b) => b.totalSpent - a.totalSpent)
+    .slice(0, 10); // Top 10 vendors
+};
+
+// Function to export expense data (for future export functionality)
+export const exportExpenseData = async (timePeriod: TimePeriod = 'all'): Promise<string> => {
+  try {
+    const analytics = await getReportsAnalytics(timePeriod);
+    const expenses = await getExpenses();
+    
+    // Filter expenses by time period
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (timePeriod) {
+      case 'week':
+        startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+        break;
+      case 'month':
+        startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+        break;
+      case 'quarter':
+        startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+        break;
+      case 'year':
+        startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+        break;
+      case 'all':
+      default:
+        startDate = new Date(0);
+        break;
+    }
+    
+    const filteredExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate >= startDate;
+    });
+    
+    // Create CSV format
+    const headers = ['Date', 'Description', 'Amount', 'Category', 'Vendor'];
+    const csvRows = [headers.join(',')];
+    
+    filteredExpenses.forEach(expense => {
+      const row = [
+        expense.date,
+        `"${expense.description}"`,
+        expense.amount.toString(),
+        expense.category || 'Other',
+        expense.vendor || 'Unknown'
+      ];
+      csvRows.push(row.join(','));
+    });
+    
+    return csvRows.join('\n');
+  } catch (error) {
+    console.error('Export expense data error:', error);
     throw error;
   }
 }; 

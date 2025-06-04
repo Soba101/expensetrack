@@ -28,7 +28,7 @@ interface QuickActionsProps {
 // Fallback styles using StyleSheet
 const styles = StyleSheet.create({
   container: {
-    padding: 0,
+    padding: 5,
     borderRadius: 16,
     backgroundColor: '#ffffff',
     marginBottom: 16,
