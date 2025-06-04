@@ -27,11 +27,13 @@ mongoose.connect(process.env.MONGODB_URI)
 const authRoutes = require('./routes/auth');
 const receiptRoutes = require('./routes/receipts');
 const expenseRoutes = require('./routes/expenses');
+const categoryRoutes = require('./routes/categories');
 
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/receipts', receiptRoutes);
 app.use('/api/expenses', expenseRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // Basic route for health check
 app.get('/', (req, res) => {

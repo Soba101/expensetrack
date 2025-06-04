@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { TamaguiProvider, View, Text } from '@tamagui/core';
 import tamaguiConfig from './tamagui.config';
 import CategoriesScreen from './screens/CategoriesScreen';
+import CategoryManagementScreen from './screens/CategoryManagementScreen';
 import ReportsScreen from './screens/ReportsScreen';
 import AboutScreen from './screens/AboutScreen';
 import SettingsScreen from './screens/SettingsScreen';
@@ -64,7 +65,8 @@ const AuthenticatedStack = () => (
     <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
     <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ title: 'All Expenses' }} />
     <Stack.Screen name="AddEditExpense" component={AddEditExpenseScreen} options={{ headerShown: false }} />
-    <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Categories' }} />
+    <Stack.Screen name="Categories" component={CategoryManagementScreen} options={{ title: 'Manage Categories' }} />
+    <Stack.Screen name="CategoriesView" component={CategoriesScreen} options={{ title: 'Categories Overview' }} />
     <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Reports' }} />
     <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
     <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />

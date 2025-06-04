@@ -47,6 +47,30 @@ export interface ExpenseResponse {
   receipt?: any; // Receipt data if one was created
 }
 
+// Interface for category data
+export interface Category {
+  _id: string;
+  name: string;
+  icon: string;
+  color: string;
+  budget?: number;
+  order: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+  currentMonthSpent?: number;
+  currentMonthTransactions?: number;
+  budgetUsed?: number;
+}
+
+// Interface for creating/updating categories
+export interface CategoryFormData {
+  name: string;
+  icon: string;
+  color: string;
+  budget?: number;
+}
+
 // Interface for expense summary analytics
 export interface ExpenseSummary {
   currentMonth: {
@@ -127,6 +151,207 @@ export interface ReportsAnalytics {
   vendors: VendorAnalytics[];
   timePeriod: TimePeriod;
 }
+
+// ===== CATEGORY MANAGEMENT FUNCTIONS =====
+
+// Get all categories for the current user
+export const getCategoriesWithStats = async (): Promise<Category[]> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch categories: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    return result.data || [];
+  } catch (error) {
+    console.error('Get categories error:', error);
+    throw error;
+  }
+};
+
+// Create a new category
+export const createCategory = async (categoryData: CategoryFormData): Promise<Category> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(categoryData),
+    });
+
+    if (response.status === 401) {
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create category');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('Create category error:', error);
+    throw error;
+  }
+};
+
+// Update an existing category
+export const updateCategory = async (categoryId: string, categoryData: Partial<CategoryFormData>): Promise<Category> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(categoryData),
+    });
+
+    if (response.status === 401) {
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update category');
+    }
+
+    const result = await response.json();
+    return result.data;
+  } catch (error) {
+    console.error('Update category error:', error);
+    throw error;
+  }
+};
+
+// Delete a category
+export const deleteCategory = async (categoryId: string): Promise<void> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete category');
+    }
+  } catch (error) {
+    console.error('Delete category error:', error);
+    throw error;
+  }
+};
+
+// Initialize default categories for new users
+export const initializeDefaultCategories = async (): Promise<Category[]> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/initialize`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to initialize categories');
+    }
+
+    const result = await response.json();
+    return result.data || [];
+  } catch (error) {
+    console.error('Initialize categories error:', error);
+    throw error;
+  }
+};
+
+// Reorder categories
+export const reorderCategories = async (categoryIds: string[]): Promise<void> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/categories/reorder`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ categoryIds }),
+    });
+
+    if (response.status === 401) {
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to reorder categories');
+    }
+  } catch (error) {
+    console.error('Reorder categories error:', error);
+    throw error;
+  }
+};
+
+// ===== EXISTING FUNCTIONS =====
 
 // Function to save expense (with optional receipt)
 export const saveExpense = async (expenseData: ExpenseData): Promise<ExpenseResponse> => {
