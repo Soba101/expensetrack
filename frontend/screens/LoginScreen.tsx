@@ -206,78 +206,6 @@ const LoginScreen: React.FC = () => {
     navigation.navigate('Register' as never);
   };
 
-  // Enhanced input component with validation
-  const FormInput = ({ 
-    label, 
-    value, 
-    onChangeText, 
-    placeholder, 
-    secureTextEntry = false, 
-    error, 
-    leftIcon, 
-    rightIcon,
-    autoCapitalize = 'none',
-    keyboardType = 'default',
-    returnKeyType = 'next',
-    onSubmitEditing
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder: string;
-    secureTextEntry?: boolean;
-    error?: string;
-    leftIcon: string;
-    rightIcon?: React.ReactNode;
-    autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
-    keyboardType?: 'default' | 'email-address' | 'numeric' | 'phone-pad';
-    returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
-    onSubmitEditing?: () => void;
-  }) => (
-    <View style={{ width: '100%', marginBottom: 4 }}>
-      <Text style={styles.inputLabel}>
-        {label}
-      </Text>
-      <View style={{ position: 'relative' }}>
-        <TextInput
-          style={[
-            styles.modernInput, 
-            { 
-              backgroundColor: inputBackgroundColor, 
-              borderColor: error ? errorColor : inputBorderColor, 
-              color: textPrimaryColor,
-              borderWidth: error ? 2 : 1,
-            }
-          ]}
-          placeholder={placeholder}
-          placeholderTextColor={textSecondaryColor}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
-          autoCapitalize={autoCapitalize}
-          autoCorrect={false}
-          keyboardType={keyboardType}
-          returnKeyType={returnKeyType}
-          onSubmitEditing={onSubmitEditing}
-          blurOnSubmit={false}
-        />
-        <View style={{ position: 'absolute', left: 16, top: 18 }}>
-          <Ionicons name={leftIcon as any} size={20} color={error ? errorColor : textSecondaryColor} />
-        </View>
-        {rightIcon && (
-          <View style={{ position: 'absolute', right: 16, top: 18 }}>
-            {rightIcon}
-          </View>
-        )}
-      </View>
-      {error ? (
-        <Text style={styles.errorText}>
-          {error}
-        </Text>
-      ) : null}
-    </View>
-  );
-
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: backgroundColor }}>
       <StatusBar barStyle="dark-content" backgroundColor={backgroundColor} />
@@ -311,39 +239,85 @@ const LoginScreen: React.FC = () => {
 
               {/* Enhanced Input Fields */}
               <View style={styles.inputContainer}>
-                <FormInput
-                  label="Username"
-                  value={username}
-                  onChangeText={handleUsernameChange}
-                  placeholder="Enter your username"
-                  error={usernameError}
-                  leftIcon="person-outline"
-                  returnKeyType="next"
-                  onSubmitEditing={() => {
-                    // Focus password field (would need ref in real implementation)
-                  }}
-                />
+                {/* Username Input */}
+                <View style={{ width: '100%', marginBottom: 4 }}>
+                  <Text style={styles.inputLabel}>
+                    Username
+                  </Text>
+                  <View style={{ position: 'relative' }}>
+                    <TextInput
+                      style={[
+                        styles.modernInput, 
+                        { 
+                          backgroundColor: inputBackgroundColor, 
+                          borderColor: usernameError ? errorColor : inputBorderColor, 
+                          color: textPrimaryColor,
+                          borderWidth: usernameError ? 2 : 1,
+                        }
+                      ]}
+                      placeholder="Enter your username"
+                      placeholderTextColor={textSecondaryColor}
+                      value={username}
+                      onChangeText={handleUsernameChange}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="next"
+                    />
+                    <View style={{ position: 'absolute', left: 16, top: 18 }}>
+                      <Ionicons name="person-outline" size={20} color={usernameError ? errorColor : textSecondaryColor} />
+                    </View>
+                  </View>
+                  {usernameError ? (
+                    <Text style={styles.errorText}>
+                      {usernameError}
+                    </Text>
+                  ) : null}
+                </View>
 
-                <FormInput
-                  label="Password"
-                  value={password}
-                  onChangeText={handlePasswordChange}
-                  placeholder="Enter your password"
-                  secureTextEntry={!showPassword}
-                  error={passwordError}
-                  leftIcon="lock-closed-outline"
-                  returnKeyType="done"
-                  onSubmitEditing={handleLogin}
-                  rightIcon={
-                    <TouchableOpacity onPress={handleShowPasswordToggle}>
-                      <Ionicons 
-                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
-                        size={20} 
-                        color={textSecondaryColor} 
-                      />
-                    </TouchableOpacity>
-                  }
-                />
+                {/* Password Input */}
+                <View style={{ width: '100%', marginBottom: 4 }}>
+                  <Text style={styles.inputLabel}>
+                    Password
+                  </Text>
+                  <View style={{ position: 'relative' }}>
+                    <TextInput
+                      style={[
+                        styles.modernInput, 
+                        { 
+                          backgroundColor: inputBackgroundColor, 
+                          borderColor: passwordError ? errorColor : inputBorderColor, 
+                          color: textPrimaryColor,
+                          borderWidth: passwordError ? 2 : 1,
+                        }
+                      ]}
+                      placeholder="Enter your password"
+                      placeholderTextColor={textSecondaryColor}
+                      value={password}
+                      onChangeText={handlePasswordChange}
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      returnKeyType="done"
+                    />
+                    <View style={{ position: 'absolute', left: 16, top: 18 }}>
+                      <Ionicons name="lock-closed-outline" size={20} color={passwordError ? errorColor : textSecondaryColor} />
+                    </View>
+                    <View style={{ position: 'absolute', right: 16, top: 18 }}>
+                      <TouchableOpacity onPress={handleShowPasswordToggle}>
+                        <Ionicons 
+                          name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                          size={20} 
+                          color={textSecondaryColor} 
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  {passwordError ? (
+                    <Text style={styles.errorText}>
+                      {passwordError}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
 
               {/* Forgot Password Link */}

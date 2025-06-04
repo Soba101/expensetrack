@@ -341,7 +341,6 @@ const RegisterScreen: React.FC = () => {
                         autoCapitalize="none"
                         autoCorrect={false}
                         keyboardType="email-address"
-                        blurOnSubmit={false}
                         returnKeyType="next"
                       />
                       <RNView style={{ position: 'absolute', right: 16, top: 16 }}>
@@ -380,7 +379,6 @@ const RegisterScreen: React.FC = () => {
                         onChangeText={handleUsernameChange}
                         autoCapitalize="none"
                         autoCorrect={false}
-                        blurOnSubmit={false}
                         returnKeyType="next"
                       />
                       <RNView style={{ position: 'absolute', right: 16, top: 16 }}>
@@ -420,7 +418,6 @@ const RegisterScreen: React.FC = () => {
                         secureTextEntry={!showPassword}
                         autoCapitalize="none"
                         autoCorrect={false}
-                        blurOnSubmit={false}
                         returnKeyType="next"
                       />
                       <TouchableOpacity 
@@ -463,7 +460,6 @@ const RegisterScreen: React.FC = () => {
                         secureTextEntry={!showConfirmPassword}
                         autoCapitalize="none"
                         autoCorrect={false}
-                        blurOnSubmit={false}
                         returnKeyType="done"
                       />
                       <TouchableOpacity 
