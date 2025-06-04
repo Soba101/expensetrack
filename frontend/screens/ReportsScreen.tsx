@@ -6,12 +6,13 @@ import { Ionicons } from '@expo/vector-icons';
 import PieChart, { PieChartData } from '../components/charts/PieChart';
 import LineChart, { LineChartDataPoint } from '../components/charts/LineChart';
 import BarChart, { BarChartData } from '../components/charts/BarChart';
+import ExportModal from '../components/ExportModal';
 import { 
   getReportsAnalytics, 
   ReportsAnalytics, 
-  TimePeriod,
-  exportExpenseData 
+  TimePeriod
 } from '../services/expenseService';
+import exportService, { ExportOptions, ExportResult } from '../services/exportService';
 
 // Tab options for different report views
 type ReportTab = 'overview' | 'categories' | 'trends' | 'vendors';
@@ -35,6 +36,7 @@ const ReportsScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // Theme setup
   const theme = useTheme();
@@ -79,16 +81,29 @@ const ReportsScreen: React.FC = () => {
     loadAnalytics(true);
   };
 
-  // Handle export (placeholder for now)
-  const handleExport = async () => {
+  // Handle export button press - opens export modal
+  const handleExport = () => {
+    setShowExportModal(true);
+  };
+
+  // Handle actual export process from modal
+  const handleExportData = async (options: ExportOptions): Promise<void> => {
     try {
-      const csvData = await exportExpenseData(timePeriod);
-      console.log('Export data:', csvData);
-      // TODO: Implement actual file export using expo-file-system
-      alert('Export functionality coming soon!');
-    } catch (err) {
-      console.error('Export failed:', err);
-      alert('Export failed. Please try again.');
+      console.log('🔄 Starting export with options:', options);
+      
+      const result: ExportResult = await exportService.exportExpenseData(options);
+      
+      if (result.success) {
+        console.log('✅ Export successful:', result.fileName);
+        // Show success message for mock export
+        alert(`Export generated successfully!\n\nFile: ${result.fileName}\n\nNote: This is a demo version. In a production build, the file would be saved and shared. Check the console for the generated data.`);
+      } else {
+        console.error('❌ Export failed:', result.error);
+        alert(`Export failed: ${result.error}`);
+      }
+    } catch (error: any) {
+      console.error('❌ Export error:', error);
+      alert(`Export failed: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -645,6 +660,14 @@ const ReportsScreen: React.FC = () => {
         {/* Bottom Spacing */}
         <RNView style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        onExport={handleExportData}
+        currentTimePeriod={timePeriod}
+      />
     </View>
   );
 };
