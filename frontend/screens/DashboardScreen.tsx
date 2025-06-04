@@ -528,7 +528,7 @@ const DashboardScreen: React.FC = () => {
 
           {/* Categories */}
           <TouchableOpacity
-            onPress={() => (navigation as any).navigate('CategoryManagement')}
+            onPress={() => (navigation as any).navigate('Categories')}
             style={{
               flex: 1,
               backgroundColor: 'white',

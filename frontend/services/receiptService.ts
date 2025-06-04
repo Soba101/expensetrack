@@ -196,6 +196,8 @@ export const processReceiptWithOCR = async (receiptId: string): Promise<OCRProce
 // Function to get a specific receipt by ID
 export const getReceiptById = async (receiptId: string): Promise<ReceiptResponse['receipt']> => {
   try {
+    console.log('getReceiptById: Starting for ID:', receiptId);
+    
     // Get authentication token
     const token = await getAuthToken();
     if (!token) {
@@ -203,19 +205,51 @@ export const getReceiptById = async (receiptId: string): Promise<ReceiptResponse
     }
 
     // Fetch specific receipt from backend
-    const response = await fetch(`${API_BASE_URL}/api/receipts/${receiptId}`, {
+    const url = `${API_BASE_URL}/api/receipts/${receiptId}`;
+    console.log('getReceiptById: Fetching from URL:', url);
+    
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
       },
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeoutId);
+
+    console.log('getReceiptById: Response received, status:', response.status);
+
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid in get receipt - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    // Handle not found
+    if (response.status === 404) {
+      throw new Error('Receipt not found');
+    }
+
+    // Handle server errors
+    if (response.status >= 500) {
+      throw new Error('Server error');
+    }
 
     const data = await response.json();
+    console.log('getReceiptById: Data parsed:', data);
 
     if (!response.ok) {
+      console.log('getReceiptById: Response not ok, data:', data);
       throw new Error(data.message || 'Failed to fetch receipt');
     }
 
+    console.log('getReceiptById: Success, returning data');
     return data; // Return receipt data
   } catch (error) {
     console.error('Get receipt error:', error);

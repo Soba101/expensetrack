@@ -437,6 +437,123 @@ export const saveExpense = async (expenseData: ExpenseData): Promise<ExpenseResp
   }
 };
 
+// Function to update an existing expense
+export const updateExpense = async (expenseId: string, expenseData: ExpenseData): Promise<any> => {
+  try {
+    // Get authentication token
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    // Prepare expense data for backend (similar to saveExpense but without receipt handling for now)
+    const expensePayload = {
+      amount: expenseData.amount,
+      description: expenseData.description,
+      date: expenseData.date,
+      category: expenseData.category || '',
+      vendor: expenseData.vendor || '',
+    };
+
+    // Update expense on backend
+    console.log('Updating expense with ID:', expenseId);
+    console.log('Update payload:', expensePayload);
+    
+    const response = await fetch(`${API_BASE_URL}/api/expenses/${expenseId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(expensePayload),
+    });
+
+    console.log('Update response status:', response.status);
+
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    // Check if response is actually JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const textResponse = await response.text();
+      console.error('Non-JSON response received:', textResponse);
+      throw new Error(`Server returned non-JSON response: ${textResponse.substring(0, 200)}`);
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to update expense');
+    }
+
+    return data.expense || data; // Return updated expense data
+  } catch (error) {
+    console.error('Update expense error:', error);
+    throw error; // Re-throw to be handled by the calling component
+  }
+};
+
+// Function to delete an expense by ID
+export const deleteExpense = async (expenseId: string): Promise<void> => {
+  try {
+    console.log('deleteExpense: Starting for ID:', expenseId);
+    
+    // Get authentication token
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    // Delete expense from backend
+    const url = `${API_BASE_URL}/api/expenses/${expenseId}`;
+    console.log('deleteExpense: Deleting from URL:', url);
+    
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+
+    console.log('deleteExpense: Response received, status:', response.status);
+
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    // Handle not found
+    if (response.status === 404) {
+      throw new Error('Expense not found');
+    }
+
+    if (!response.ok) {
+      const data = await response.json();
+      console.log('deleteExpense: Response not ok, data:', data);
+      throw new Error(data.message || 'Failed to delete expense');
+    }
+
+    console.log('deleteExpense: Success');
+  } catch (error) {
+    console.error('Delete expense error:', error);
+    throw error;
+  }
+};
+
 // Function to get all expenses for the current user
 export const getExpenses = async (): Promise<any[]> => {
   try {
@@ -492,6 +609,65 @@ export const getExpenses = async (): Promise<any[]> => {
     return data; // Return array of expenses
   } catch (error) {
     console.error('Get expenses error:', error);
+    throw error;
+  }
+};
+
+// Function to get a single expense by ID
+export const getExpenseById = async (expenseId: string): Promise<any> => {
+  try {
+    console.log('getExpenseById: Starting for ID:', expenseId);
+    
+    // Get authentication token
+    const token = await getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
+    }
+
+    // Fetch single expense from backend
+    const url = `${API_BASE_URL}/api/expenses/${expenseId}`;
+    console.log('getExpenseById: Fetching from URL:', url);
+    
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+
+    console.log('getExpenseById: Response received, status:', response.status);
+
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
+    // Handle not found
+    if (response.status === 404) {
+      throw new Error('Expense not found');
+    }
+
+    const data = await response.json();
+    console.log('getExpenseById: Data parsed:', data);
+
+    if (!response.ok) {
+      console.log('getExpenseById: Response not ok, data:', data);
+      throw new Error(data.message || 'Failed to fetch expense');
+    }
+
+    console.log('getExpenseById: Success, returning data');
+    return data; // Return single expense object
+  } catch (error) {
+    console.error('Get expense by ID error:', error);
     throw error;
   }
 };

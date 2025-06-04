@@ -1,18 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { ScrollView, TouchableOpacity, RefreshControl, Alert, Text as RNText } from 'react-native';
 import { View as RNView } from 'react-native';
 import { View, Text, useTheme } from '@tamagui/core';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 import PieChart, { PieChartData } from '../components/charts/PieChart';
 import LineChart, { LineChartDataPoint } from '../components/charts/LineChart';
 import BarChart, { BarChartData } from '../components/charts/BarChart';
 import ExportModal from '../components/ExportModal';
+import SkeletonLoader from '../components/SkeletonLoader';
+import { useToast } from '../components/Toast';
 import { 
   getReportsAnalytics, 
   ReportsAnalytics, 
   TimePeriod
 } from '../services/expenseService';
 import exportService, { ExportOptions, ExportResult } from '../services/exportService';
+
+// Define the navigation stack type
+type RootStackParamList = {
+  Home: undefined;
+  ExpenseDetail: { expenseId: string };
+  ExpensesList: undefined;
+  AddEditExpense: { expenseId?: string } | undefined;
+  Categories: undefined;
+  Reports: undefined;
+  Profile: undefined;
+  Settings: undefined;
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Reports'>;
 
 // Tab options for different report views
 type ReportTab = 'overview' | 'categories' | 'trends' | 'vendors';
@@ -28,7 +47,12 @@ const TIME_PERIODS: { value: TimePeriod; label: string }[] = [
 
 // ReportsScreen: Comprehensive analytics and reporting dashboard
 // Features: Multiple chart types, time period filtering, export functionality, detailed insights
+// Enhanced with Apple-inspired design, skeleton loading, empty states, and haptic feedback
 const ReportsScreen: React.FC = () => {
+  // Navigation and toast
+  const navigation = useNavigation<NavigationProp>();
+  const { success: showSuccessToast, error: showErrorToast } = useToast();
+
   // State management
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('month');
@@ -38,23 +62,25 @@ const ReportsScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
 
-  // Theme setup
+  // Theme setup with enhanced colors
   const theme = useTheme();
-  const bg = theme.background.val;
-  const cardBg = theme.backgroundHover.val;
-  const border = theme.borderColor.val;
-  const primaryText = theme.color.val;
-  const secondaryText = theme.color11?.val || '#64748B';
-  const accentColor = '#3B82F6';
-  const successColor = '#10B981';
-  const warningColor = '#F59E0B';
-  const errorColor = '#EF4444';
+  const bg = '#F2F2F7'; // iOS background
+  const cardBg = '#FFFFFF';
+  const border = '#E5E5EA';
+  const primaryText = '#000000';
+  const secondaryText = '#8E8E93';
+  const accentColor = '#007AFF';
+  const successColor = '#34C759';
+  const warningColor = '#FF9500';
+  const errorColor = '#FF3B30';
 
-  // Load analytics data
+  // Load analytics data with enhanced error handling
   const loadAnalytics = async (showRefresh = false) => {
     try {
       if (showRefresh) {
         setRefreshing(true);
+        // Haptic feedback for refresh
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       } else {
         setLoading(true);
       }
@@ -64,7 +90,9 @@ const ReportsScreen: React.FC = () => {
       setAnalyticsData(data);
     } catch (err: any) {
       console.error('Failed to load analytics:', err);
-      setError(err.message || 'Failed to load analytics data');
+      const errorMessage = err.message || 'Failed to load analytics data';
+      setError(errorMessage);
+      showErrorToast('Failed to load analytics', errorMessage);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -76,14 +104,34 @@ const ReportsScreen: React.FC = () => {
     loadAnalytics();
   }, [timePeriod]);
 
-  // Handle refresh
-  const handleRefresh = () => {
+  // Handle refresh with haptic feedback
+  const handleRefresh = async () => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     loadAnalytics(true);
   };
 
-  // Handle export button press - opens export modal
-  const handleExport = () => {
-    setShowExportModal(true);
+  // Handle back navigation
+  const handleBack = async () => {
+    console.log('🔙 Back button pressed');
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      navigation.goBack();
+    } catch (error) {
+      console.error('Back navigation error:', error);
+      navigation.goBack();
+    }
+  };
+
+  // Handle export button press with haptic feedback
+  const handleExport = async () => {
+    console.log('📤 Export button pressed');
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setShowExportModal(true);
+    } catch (error) {
+      console.error('Export button error:', error);
+      setShowExportModal(true);
+    }
   };
 
   // Handle actual export process from modal
@@ -95,38 +143,116 @@ const ReportsScreen: React.FC = () => {
       
       if (result.success) {
         console.log('✅ Export successful:', result.fileName);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        showSuccessToast('Export Successful', `File: ${result.fileName}`);
         // Show success message for mock export
-        alert(`Export generated successfully!\n\nFile: ${result.fileName}\n\nNote: This is a demo version. In a production build, the file would be saved and shared. Check the console for the generated data.`);
+        Alert.alert(
+          'Export Successful',
+          `File: ${result.fileName}\n\nNote: This is a demo version. In a production build, the file would be saved and shared. Check the console for the generated data.`,
+          [{ text: 'OK', style: 'default' }]
+        );
       } else {
         console.error('❌ Export failed:', result.error);
-        alert(`Export failed: ${result.error}`);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showErrorToast('Export Failed', result.error || 'Unknown error');
       }
     } catch (error: any) {
       console.error('❌ Export error:', error);
-      alert(`Export failed: ${error.message || 'Unknown error'}`);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showErrorToast('Export Failed', error.message || 'Unknown error');
     }
   };
 
-  // Render time period selector
+  // Handle tab change with haptic feedback
+  const handleTabChange = async (tab: ReportTab) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setActiveTab(tab);
+  };
+
+  // Handle time period change with haptic feedback
+  const handleTimePeriodChange = async (period: TimePeriod) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setTimePeriod(period);
+  };
+
+  // Render skeleton loading for summary cards
+  const renderSummaryCardsSkeleton = () => (
+    <RNView style={{ 
+      flexDirection: 'row', 
+      gap: 12, 
+      marginHorizontal: 16, 
+      marginBottom: 16 
+    }}>
+      <SkeletonLoader width="48%" height={80} borderRadius={12} />
+      <SkeletonLoader width="48%" height={80} borderRadius={12} />
+    </RNView>
+  );
+
+  // Render skeleton loading for charts
+  const renderChartSkeleton = () => (
+    <RNView style={{ paddingHorizontal: 16, marginBottom: 16 }}>
+      <SkeletonLoader width="100%" height={300} borderRadius={12} />
+    </RNView>
+  );
+
+  // Render empty state component
+  const renderEmptyState = (title: string, message: string, icon: string) => (
+    <View
+      flex={1}
+      alignItems="center"
+      justifyContent="center"
+      padding="$6"
+      marginTop="$8"
+    >
+      <View
+        width={80}
+        height={80}
+        borderRadius={40}
+        backgroundColor="#F2F2F7"
+        alignItems="center"
+        justifyContent="center"
+        marginBottom="$4"
+      >
+        <Ionicons name={icon as any} size={40} color={secondaryText} />
+      </View>
+      <Text fontSize="$5" fontWeight="600" color={primaryText} textAlign="center" marginBottom="$2">
+        {title}
+      </Text>
+      <Text fontSize="$3" color={secondaryText} textAlign="center" lineHeight="$4">
+        {message}
+      </Text>
+    </View>
+  );
+
+  // Render enhanced time period selector
   const renderTimePeriodSelector = () => (
     <ScrollView 
       horizontal 
       showsHorizontalScrollIndicator={false}
-      style={{ marginBottom: 16 }}
+      style={{ marginBottom: 20 }}
+      contentContainerStyle={{ paddingHorizontal: 16 }}
     >
-      <RNView style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 16 }}>
+      <RNView style={{ flexDirection: 'row', gap: 8 }}>
         {TIME_PERIODS.map((period) => (
           <TouchableOpacity
             key={period.value}
-            onPress={() => setTimePeriod(period.value)}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setTimePeriod(period.value);
+            }}
+            activeOpacity={0.7}
           >
             <View
               paddingHorizontal="$4"
-              paddingVertical="$2"
-              borderRadius="$6"
+              paddingVertical="$3"
+              borderRadius="$8"
               backgroundColor={timePeriod === period.value ? accentColor : cardBg}
               borderWidth={1}
               borderColor={timePeriod === period.value ? accentColor : border}
+              shadowColor="#000"
+              shadowOffset={{ width: 0, height: 1 }}
+              shadowOpacity={0.1}
+              shadowRadius={2}
             >
               <Text
                 fontSize="$3"
@@ -142,15 +268,18 @@ const ReportsScreen: React.FC = () => {
     </ScrollView>
   );
 
-  // Render tab navigation
+  // Render enhanced tab navigation
   const renderTabNavigation = () => (
     <RNView style={{ 
-      flexDirection: 'row', 
       backgroundColor: cardBg,
-      borderRadius: 12,
+      borderRadius: 16,
       padding: 4,
       marginHorizontal: 16,
-      marginBottom: 16
+      marginBottom: 20,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
     }}>
       {[
         { key: 'overview', label: 'Overview', icon: 'analytics' },
@@ -161,17 +290,21 @@ const ReportsScreen: React.FC = () => {
         <TouchableOpacity
           key={tab.key}
           style={{ flex: 1 }}
-          onPress={() => setActiveTab(tab.key as ReportTab)}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            setActiveTab(tab.key as ReportTab);
+          }}
+          activeOpacity={0.7}
         >
           <View
             paddingVertical="$3"
-            borderRadius="$2"
+            borderRadius="$3"
             backgroundColor={activeTab === tab.key ? accentColor : 'transparent'}
             alignItems="center"
           >
             <Ionicons
               name={tab.icon as any}
-              size={16}
+              size={18}
               color={activeTab === tab.key ? 'white' : secondaryText}
               style={{ marginBottom: 4 }}
             />
@@ -188,9 +321,9 @@ const ReportsScreen: React.FC = () => {
     </RNView>
   );
 
-  // Render summary cards
+  // Render enhanced summary cards with icons
   const renderSummaryCards = () => {
-    if (!analyticsData) return null;
+    if (!analyticsData) return renderSummaryCardsSkeleton();
 
     const { summary } = analyticsData;
 
@@ -199,19 +332,34 @@ const ReportsScreen: React.FC = () => {
         flexDirection: 'row', 
         gap: 12, 
         marginHorizontal: 16, 
-        marginBottom: 16 
+        marginBottom: 20 
       }}>
         <View
           flex={1}
           padding="$4"
           borderRadius="$4"
           backgroundColor={cardBg}
-          borderWidth={1}
-          borderColor={border}
+          shadowColor="#000"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
         >
-          <Text fontSize="$2" color={secondaryText} marginBottom="$2">
-            Total Spent
-          </Text>
+          <RNView style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <View
+              width={32}
+              height={32}
+              borderRadius={16}
+              backgroundColor="#E3F2FD"
+              alignItems="center"
+              justifyContent="center"
+              marginRight="$3"
+            >
+              <Ionicons name="wallet" size={16} color={accentColor} />
+            </View>
+            <Text fontSize="$2" color={secondaryText} fontWeight="500">
+              Total Spent
+            </Text>
+          </RNView>
           <Text fontSize="$6" fontWeight="700" color={primaryText}>
             ${summary.totalSpent.toLocaleString()}
           </Text>
@@ -222,12 +370,27 @@ const ReportsScreen: React.FC = () => {
           padding="$4"
           borderRadius="$4"
           backgroundColor={cardBg}
-          borderWidth={1}
-          borderColor={border}
+          shadowColor="#000"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
         >
-          <Text fontSize="$2" color={secondaryText} marginBottom="$2">
-            Transactions
-          </Text>
+          <RNView style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+            <View
+              width={32}
+              height={32}
+              borderRadius={16}
+              backgroundColor="#E8F5E8"
+              alignItems="center"
+              justifyContent="center"
+              marginRight="$3"
+            >
+              <Ionicons name="receipt" size={16} color={successColor} />
+            </View>
+            <Text fontSize="$2" color={secondaryText} fontWeight="500">
+              Transactions
+            </Text>
+          </RNView>
           <Text fontSize="$6" fontWeight="700" color={primaryText}>
             {summary.transactionCount}
           </Text>
@@ -236,11 +399,20 @@ const ReportsScreen: React.FC = () => {
     );
   };
 
-  // Render overview tab content
+  // Render overview tab content with enhanced styling
   const renderOverviewTab = () => {
-    if (!analyticsData) return null;
+    if (!analyticsData) return renderChartSkeleton();
 
     const { summary, categories } = analyticsData;
+
+    // Check for empty data
+    if (categories.length === 0) {
+      return renderEmptyState(
+        'No Data Available',
+        'Start adding expenses to see your spending overview and analytics.',
+        'analytics-outline'
+      );
+    }
 
     // Prepare pie chart data
     const pieChartData: PieChartData[] = categories.slice(0, 6).map(cat => ({
@@ -251,36 +423,77 @@ const ReportsScreen: React.FC = () => {
     }));
 
     return (
-      <RNView style={{ gap: 16, paddingHorizontal: 16 }}>
+      <RNView style={{ gap: 20, paddingHorizontal: 16 }}>
         {/* Key Metrics */}
         <View
           padding="$4"
           borderRadius="$4"
           backgroundColor={cardBg}
-          borderWidth={1}
-          borderColor={border}
+          shadowColor="#000"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
         >
           <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
             Key Metrics
           </Text>
           
-          <RNView style={{ gap: 12 }}>
-            <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text fontSize="$3" color={secondaryText}>Average Transaction</Text>
+          <RNView style={{ gap: 16 }}>
+            <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View
+                  width={24}
+                  height={24}
+                  borderRadius={12}
+                  backgroundColor="#FFF3E0"
+                  alignItems="center"
+                  justifyContent="center"
+                  marginRight="$3"
+                >
+                  <Ionicons name="calculator" size={12} color={warningColor} />
+                </View>
+                <Text fontSize="$3" color={secondaryText}>Average Transaction</Text>
+              </RNView>
               <Text fontSize="$3" fontWeight="600" color={primaryText}>
                 ${summary.averageTransaction.toFixed(2)}
               </Text>
             </RNView>
             
-            <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text fontSize="$3" color={secondaryText}>Top Category</Text>
+            <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View
+                  width={24}
+                  height={24}
+                  borderRadius={12}
+                  backgroundColor="#E3F2FD"
+                  alignItems="center"
+                  justifyContent="center"
+                  marginRight="$3"
+                >
+                  <Ionicons name="trophy" size={12} color={accentColor} />
+                </View>
+                <Text fontSize="$3" color={secondaryText}>Top Category</Text>
+              </RNView>
               <Text fontSize="$3" fontWeight="600" color={primaryText}>
                 {summary.topCategory}
               </Text>
             </RNView>
             
-            <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text fontSize="$3" color={secondaryText}>Top Vendor</Text>
+            <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View
+                  width={24}
+                  height={24}
+                  borderRadius={12}
+                  backgroundColor="#E8F5E8"
+                  alignItems="center"
+                  justifyContent="center"
+                  marginRight="$3"
+                >
+                  <Ionicons name="storefront" size={12} color={successColor} />
+                </View>
+                <Text fontSize="$3" color={secondaryText}>Top Vendor</Text>
+              </RNView>
               <Text fontSize="$3" fontWeight="600" color={primaryText}>
                 {summary.topVendor}
               </Text>
@@ -294,8 +507,10 @@ const ReportsScreen: React.FC = () => {
             padding="$4"
             borderRadius="$4"
             backgroundColor={cardBg}
-            borderWidth={1}
-            borderColor={border}
+            shadowColor="#000"
+            shadowOffset={{ width: 0, height: 2 }}
+            shadowOpacity={0.1}
+            shadowRadius={4}
           >
             <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
               Spending by Category
@@ -312,11 +527,20 @@ const ReportsScreen: React.FC = () => {
     );
   };
 
-  // Render categories tab content
+  // Render categories tab content with enhanced styling
   const renderCategoriesTab = () => {
-    if (!analyticsData) return null;
+    if (!analyticsData) return renderChartSkeleton();
 
     const { categories } = analyticsData;
+
+    // Check for empty data
+    if (categories.length === 0) {
+      return renderEmptyState(
+        'No Categories Found',
+        'Add some expenses with categories to see detailed category analysis.',
+        'pie-chart-outline'
+      );
+    }
 
     // Prepare bar chart data
     const barChartData: BarChartData[] = categories.slice(0, 8).map(cat => ({
@@ -326,15 +550,17 @@ const ReportsScreen: React.FC = () => {
     }));
 
     return (
-      <RNView style={{ gap: 16, paddingHorizontal: 16 }}>
+      <RNView style={{ gap: 20, paddingHorizontal: 16 }}>
         {/* Category Comparison Chart */}
         {barChartData.length > 0 && (
           <View
             padding="$4"
             borderRadius="$4"
             backgroundColor={cardBg}
-            borderWidth={1}
-            borderColor={border}
+            shadowColor="#000"
+            shadowOffset={{ width: 0, height: 2 }}
+            shadowOpacity={0.1}
+            shadowRadius={4}
           >
             <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
               Category Comparison
@@ -353,8 +579,10 @@ const ReportsScreen: React.FC = () => {
           padding="$4"
           borderRadius="$4"
           backgroundColor={cardBg}
-          borderWidth={1}
-          borderColor={border}
+          shadowColor="#000"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
         >
           <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
             Category Details
@@ -368,16 +596,16 @@ const ReportsScreen: React.FC = () => {
                   flexDirection: 'row', 
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  paddingVertical: 8,
+                  paddingVertical: 12,
                   borderBottomWidth: index < categories.length - 1 ? 1 : 0,
                   borderBottomColor: border
                 }}
               >
                 <RNView style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                   <RNView style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
                     backgroundColor: category.color,
                     marginRight: 12
                   }} />
@@ -421,11 +649,20 @@ const ReportsScreen: React.FC = () => {
     );
   };
 
-  // Render trends tab content
+  // Render trends tab content with enhanced styling
   const renderTrendsTab = () => {
-    if (!analyticsData) return null;
+    if (!analyticsData) return renderChartSkeleton();
 
     const { trends } = analyticsData;
+
+    // Check for empty data
+    if (trends.length === 0) {
+      return renderEmptyState(
+        'No Trend Data',
+        'Add more expenses over time to see spending trends and patterns.',
+        'trending-up-outline'
+      );
+    }
 
     // Prepare line chart data
     const lineChartData: LineChartDataPoint[] = trends.map(trend => ({
@@ -435,15 +672,17 @@ const ReportsScreen: React.FC = () => {
     }));
 
     return (
-      <RNView style={{ gap: 16, paddingHorizontal: 16 }}>
+      <RNView style={{ gap: 20, paddingHorizontal: 16 }}>
         {/* Spending Trends Chart */}
         {lineChartData.length > 0 && (
           <View
             padding="$4"
             borderRadius="$4"
             backgroundColor={cardBg}
-            borderWidth={1}
-            borderColor={border}
+            shadowColor="#000"
+            shadowOffset={{ width: 0, height: 2 }}
+            shadowOpacity={0.1}
+            shadowRadius={4}
           >
             <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
               Spending Trends
@@ -463,38 +702,79 @@ const ReportsScreen: React.FC = () => {
           padding="$4"
           borderRadius="$4"
           backgroundColor={cardBg}
-          borderWidth={1}
-          borderColor={border}
+          shadowColor="#000"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
         >
           <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
             Trend Analysis
           </Text>
           
           {trends.length > 1 ? (
-            <RNView style={{ gap: 12 }}>
-              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text fontSize="$3" color={secondaryText}>Highest Day</Text>
+            <RNView style={{ gap: 16 }}>
+              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View
+                    width={24}
+                    height={24}
+                    borderRadius={12}
+                    backgroundColor="#FFEBEE"
+                    alignItems="center"
+                    justifyContent="center"
+                    marginRight="$3"
+                  >
+                    <Ionicons name="arrow-up" size={12} color={errorColor} />
+                  </View>
+                  <Text fontSize="$3" color={secondaryText}>Highest Day</Text>
+                </RNView>
                 <Text fontSize="$3" fontWeight="600" color={primaryText}>
                   ${Math.max(...trends.map(t => t.amount)).toFixed(0)}
                 </Text>
               </RNView>
               
-              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text fontSize="$3" color={secondaryText}>Lowest Day</Text>
+              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View
+                    width={24}
+                    height={24}
+                    borderRadius={12}
+                    backgroundColor="#E8F5E8"
+                    alignItems="center"
+                    justifyContent="center"
+                    marginRight="$3"
+                  >
+                    <Ionicons name="arrow-down" size={12} color={successColor} />
+                  </View>
+                  <Text fontSize="$3" color={secondaryText}>Lowest Day</Text>
+                </RNView>
                 <Text fontSize="$3" fontWeight="600" color={primaryText}>
                   ${Math.min(...trends.map(t => t.amount)).toFixed(0)}
                 </Text>
               </RNView>
               
-              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text fontSize="$3" color={secondaryText}>Average Daily</Text>
+              <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <RNView style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View
+                    width={24}
+                    height={24}
+                    borderRadius={12}
+                    backgroundColor="#E3F2FD"
+                    alignItems="center"
+                    justifyContent="center"
+                    marginRight="$3"
+                  >
+                    <Ionicons name="calculator" size={12} color={accentColor} />
+                  </View>
+                  <Text fontSize="$3" color={secondaryText}>Average Daily</Text>
+                </RNView>
                 <Text fontSize="$3" fontWeight="600" color={primaryText}>
                   ${(trends.reduce((sum, t) => sum + t.amount, 0) / trends.length).toFixed(0)}
                 </Text>
               </RNView>
             </RNView>
           ) : (
-            <Text fontSize="$3" color={secondaryText}>
+            <Text fontSize="$3" color={secondaryText} textAlign="center" marginTop="$4">
               Not enough data for trend analysis
             </Text>
           )}
@@ -503,21 +783,32 @@ const ReportsScreen: React.FC = () => {
     );
   };
 
-  // Render vendors tab content
+  // Render vendors tab content with enhanced styling
   const renderVendorsTab = () => {
-    if (!analyticsData) return null;
+    if (!analyticsData) return renderChartSkeleton();
 
     const { vendors } = analyticsData;
 
+    // Check for empty data
+    if (vendors.length === 0) {
+      return renderEmptyState(
+        'No Vendor Data',
+        'Add expenses with vendor information to see detailed vendor analysis.',
+        'business-outline'
+      );
+    }
+
     return (
-      <RNView style={{ gap: 16, paddingHorizontal: 16 }}>
+      <RNView style={{ gap: 20, paddingHorizontal: 16 }}>
         {/* Top Vendors */}
         <View
           padding="$4"
           borderRadius="$4"
           backgroundColor={cardBg}
-          borderWidth={1}
-          borderColor={border}
+          shadowColor="#000"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
         >
           <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
             Top Vendors
@@ -531,7 +822,7 @@ const ReportsScreen: React.FC = () => {
                   flexDirection: 'row', 
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  paddingVertical: 8,
+                  paddingVertical: 12,
                   borderBottomWidth: index < vendors.length - 1 ? 1 : 0,
                   borderBottomColor: border
                 }}
@@ -540,10 +831,10 @@ const ReportsScreen: React.FC = () => {
                   <Text fontSize="$3" fontWeight="600" color={primaryText}>
                     {vendor.name}
                   </Text>
-                  <Text fontSize="$2" color={secondaryText}>
+                  <Text fontSize="$2" color={secondaryText} marginTop={2}>
                     {vendor.transactionCount} transactions • Avg: ${vendor.averageAmount.toFixed(0)}
                   </Text>
-                  <Text fontSize="$2" color={secondaryText}>
+                  <Text fontSize="$2" color={secondaryText} marginTop={2}>
                     Categories: {vendor.categories.join(', ')}
                   </Text>
                 </RNView>
@@ -552,7 +843,7 @@ const ReportsScreen: React.FC = () => {
                   <Text fontSize="$3" fontWeight="600" color={primaryText}>
                     ${vendor.totalSpent.toLocaleString()}
                   </Text>
-                  <Text fontSize="$2" color={secondaryText}>
+                  <Text fontSize="$2" color={secondaryText} marginTop={2}>
                     Last: {new Date(vendor.lastTransaction).toLocaleDateString()}
                   </Text>
                 </RNView>
@@ -580,61 +871,167 @@ const ReportsScreen: React.FC = () => {
     }
   };
 
-  // Loading state
+  // Enhanced loading state with skeleton
   if (loading) {
     return (
-      <View flex={1} backgroundColor={bg} alignItems="center" justifyContent="center">
-        <Text fontSize="$4" color={primaryText}>Loading analytics...</Text>
+      <View flex={1} backgroundColor={bg}>
+        {/* Header Skeleton */}
+        <RNView style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingTop: 64,
+          paddingBottom: 16
+        }}>
+          <SkeletonLoader width={200} height={32} borderRadius={8} />
+          <SkeletonLoader width={24} height={24} borderRadius={12} />
+        </RNView>
+
+        <ScrollView>
+          {/* Time Period Selector Skeleton */}
+          <RNView style={{ marginBottom: 20, paddingHorizontal: 16 }}>
+            <RNView style={{ flexDirection: 'row', gap: 8 }}>
+              {[1, 2, 3, 4].map((i) => (
+                <SkeletonLoader key={i} width={100} height={40} borderRadius={20} />
+              ))}
+            </RNView>
+          </RNView>
+
+          {/* Summary Cards Skeleton */}
+          {renderSummaryCardsSkeleton()}
+
+          {/* Tab Navigation Skeleton */}
+          <RNView style={{ marginHorizontal: 16, marginBottom: 20 }}>
+            <SkeletonLoader width="100%" height={60} borderRadius={16} />
+          </RNView>
+
+          {/* Content Skeleton */}
+          {renderChartSkeleton()}
+          {renderChartSkeleton()}
+        </ScrollView>
       </View>
     );
   }
 
-  // Error state
+  // Enhanced error state
   if (error) {
     return (
-      <View flex={1} backgroundColor={bg} alignItems="center" justifyContent="center" padding="$4">
-        <Ionicons name="alert-circle" size={48} color={errorColor} />
-        <Text fontSize="$4" fontWeight="600" color={errorColor} marginTop="$4" textAlign="center">
-          Failed to Load Analytics
-        </Text>
-        <Text fontSize="$3" color={secondaryText} marginTop="$2" textAlign="center">
-          {error}
-        </Text>
-        <TouchableOpacity onPress={() => loadAnalytics()}>
+      <View flex={1} backgroundColor={bg}>
+        {/* Header */}
+        <RNView style={{ 
+          flexDirection: 'row', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingTop: 64,
+          paddingBottom: 16
+        }}>
+          <TouchableOpacity onPress={handleBack} style={{ marginRight: 16 }}>
+            <Ionicons name="chevron-back" size={24} color={accentColor} />
+          </TouchableOpacity>
+          <Text fontSize="$6" fontWeight="700" color={primaryText} flex={1}>
+            Reports & Analytics
+          </Text>
+        </RNView>
+
+        <View flex={1} alignItems="center" justifyContent="center" padding="$6">
           <View
-            marginTop="$4"
-            paddingHorizontal="$4"
-            paddingVertical="$3"
-            borderRadius="$3"
-            backgroundColor={accentColor}
+            width={80}
+            height={80}
+            borderRadius={40}
+            backgroundColor="#FFEBEE"
+            alignItems="center"
+            justifyContent="center"
+            marginBottom="$4"
           >
-            <Text fontSize="$3" fontWeight="600" color="white">
-              Try Again
-            </Text>
+            <Ionicons name="alert-circle" size={40} color={errorColor} />
           </View>
-        </TouchableOpacity>
+          <Text fontSize="$5" fontWeight="600" color={errorColor} textAlign="center" marginBottom="$2">
+            Failed to Load Analytics
+          </Text>
+          <Text fontSize="$3" color={secondaryText} textAlign="center" lineHeight="$4" marginBottom="$6">
+            {error}
+          </Text>
+          <TouchableOpacity onPress={() => loadAnalytics()} activeOpacity={0.7}>
+            <View
+              paddingHorizontal="$6"
+              paddingVertical="$3"
+              borderRadius="$6"
+              backgroundColor={accentColor}
+              shadowColor="#000"
+              shadowOffset={{ width: 0, height: 2 }}
+              shadowOpacity={0.1}
+              shadowRadius={4}
+            >
+              <Text fontSize="$3" fontWeight="600" color="white">
+                Try Again
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
 
   return (
     <View flex={1} backgroundColor={bg}>
-      {/* Header */}
-      <RNView style={{ 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingTop: 64,
-        paddingBottom: 16
-      }}>
-        <Text fontSize="$7" fontWeight="700" color={primaryText}>
-          Reports & Analytics
-        </Text>
-        <TouchableOpacity onPress={handleExport}>
-          <Ionicons name="download" size={24} color={accentColor} />
-        </TouchableOpacity>
-      </RNView>
+      {/* Enhanced Header with Back Navigation */}
+      <View style={{ paddingTop: 60, paddingHorizontal: 20, paddingBottom: 20 }}>
+        {/* Back Button Row */}
+        <RNView style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+          <TouchableOpacity
+            onPress={() => {
+              navigation.goBack();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: 'rgba(0, 122, 255, 0.1)',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={20} color="#007AFF" />
+          </TouchableOpacity>
+        </RNView>
+
+        {/* Title and Export Button Row */}
+        <RNView style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <RNView style={{ flex: 1 }}>
+            <Text fontSize={34} fontWeight="bold" color="#000000" marginBottom={4}>
+              Reports & Analytics
+            </Text>
+            <Text fontSize={17} color="#8E8E93" fontWeight="400">
+              {analyticsData ? `${analyticsData.summary.transactionCount} transactions analyzed` : 'Loading analytics...'}
+            </Text>
+          </RNView>
+          
+          {/* Export Button */}
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              setShowExportModal(true);
+            }}
+            style={{
+              backgroundColor: '#007AFF',
+              paddingHorizontal: 16,
+              paddingVertical: 8,
+              borderRadius: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+            }}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="download" size={16} color="white" />
+            <Text color="white" fontWeight="600">Export</Text>
+          </TouchableOpacity>
+        </RNView>
+      </View>
 
       <ScrollView
         refreshControl={
@@ -642,8 +1039,10 @@ const ReportsScreen: React.FC = () => {
             refreshing={refreshing}
             onRefresh={handleRefresh}
             tintColor={accentColor}
+            colors={[accentColor]}
           />
         }
+        showsVerticalScrollIndicator={false}
       >
         {/* Time Period Selector */}
         {renderTimePeriodSelector()}
@@ -657,8 +1056,8 @@ const ReportsScreen: React.FC = () => {
         {/* Tab Content */}
         {renderTabContent()}
 
-        {/* Bottom Spacing */}
-        <RNView style={{ height: 32 }} />
+        {/* Bottom Spacing for Safe Area */}
+        <RNView style={{ height: 40 }} />
       </ScrollView>
 
       {/* Export Modal */}

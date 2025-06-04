@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import { BackHandler } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import DashboardScreen from './screens/DashboardScreen';
 import ExpensesListScreen from './screens/ExpensesListScreen';
 import AddEditExpenseScreen from './screens/AddEditExpenseScreen';
@@ -62,14 +63,14 @@ const AuthenticatedStack = () => (
       }}
     />
 
-    <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ title: 'Expense Detail' }} />
+    <Stack.Screen name="ExpenseDetail" component={ExpenseDetailScreen} options={{ headerShown: false }} />
     <Stack.Screen name="ExpensesList" component={ExpensesListScreen} options={{ headerShown: false }} />
     <Stack.Screen name="AddEditExpense" component={AddEditExpenseScreen} options={{ headerShown: false }} />
-    <Stack.Screen name="Categories" component={CategoryManagementScreen} options={{ title: 'Manage Categories' }} />
+    <Stack.Screen name="Categories" component={CategoryManagementScreen} options={{ headerShown: false }} />
     <Stack.Screen name="CategoriesView" component={CategoriesScreen} options={{ title: 'Categories Overview' }} />
-    <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Reports' }} />
+    <Stack.Screen name="Reports" component={ReportsScreen} options={{ headerShown: false }} />
     <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-    <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+    <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
     <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
   </Stack.Navigator>
 );
@@ -83,15 +84,17 @@ const UnauthenticatedStack = () => (
 
 export default function App() {
   return (
-    <TamaguiProvider config={tamaguiConfig}>
-      <ToastProvider>
-        <AuthProvider>
-          <ExpenseDataProvider>
-            <AppContent />
-          </ExpenseDataProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </TamaguiProvider>
+    <SafeAreaProvider>
+      <TamaguiProvider config={tamaguiConfig}>
+        <ToastProvider>
+          <AuthProvider>
+            <ExpenseDataProvider>
+              <AppContent />
+            </ExpenseDataProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </TamaguiProvider>
+    </SafeAreaProvider>
   );
 }
 

@@ -55,17 +55,50 @@ router.get('/', authMiddleware, async (req, res) => {
 // Get a specific receipt by ID
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
-    const receipt = await Receipt.findOne({ 
+    // First try to find receipt with current schema (has user field)
+    let receipt = await Receipt.findOne({ 
       _id: req.params.id, 
       user: req.user.userId 
     });
     
-    if (!receipt) {
+    if (receipt) {
+      // Found receipt with current schema
+      return res.json(receipt);
+    }
+    
+    // If not found, try to find legacy receipt (without user field)
+    // This handles old receipts that might not have user association
+    const legacyReceipt = await Receipt.findOne({ _id: req.params.id });
+    
+    if (!legacyReceipt) {
       return res.status(404).json({ message: 'Receipt not found' });
     }
     
-    res.json(receipt);
+    // Check if this is a legacy receipt format (has filename/mimetype/data)
+    if (legacyReceipt.filename && legacyReceipt.mimetype && legacyReceipt.data) {
+      // Transform legacy format to current format for API response
+      const transformedReceipt = {
+        _id: legacyReceipt._id,
+        user: req.user.userId, // Associate with current user for security
+        image: `data:${legacyReceipt.mimetype};base64,${legacyReceipt.data}`,
+        date: legacyReceipt.createdAt || new Date(),
+        amount: 0, // Legacy receipts might not have amount
+        description: legacyReceipt.filename || 'Legacy Receipt',
+        vendor: '',
+        processed: false,
+        createdAt: legacyReceipt.createdAt,
+        updatedAt: legacyReceipt.updatedAt
+      };
+      
+      console.log('📄 Serving legacy receipt with transformed format');
+      return res.json(transformedReceipt);
+    }
+    
+    // If receipt exists but doesn't match current user and isn't legacy format
+    return res.status(404).json({ message: 'Receipt not found' });
+    
   } catch (err) {
+    console.error('Receipt fetch error:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 });
