@@ -15,6 +15,7 @@ import CategoriesScreen from './screens/CategoriesScreen';
 import ReportsScreen from './screens/ReportsScreen';
 import AboutScreen from './screens/AboutScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import LoginScreen from './screens/LoginScreen';
 import RegisterScreen from './screens/RegisterScreen';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -66,6 +67,7 @@ const AuthenticatedStack = () => (
     <Stack.Screen name="Categories" component={CategoriesScreen} options={{ title: 'Categories' }} />
     <Stack.Screen name="Reports" component={ReportsScreen} options={{ title: 'Reports' }} />
     <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+    <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
     <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
   </Stack.Navigator>
 );

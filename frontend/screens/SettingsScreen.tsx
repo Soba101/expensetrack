@@ -136,10 +136,7 @@ const SettingsScreen: React.FC = () => {
             icon="person-circle"
             title="Profile"
             subtitle="Manage your account details"
-            onPress={() => {
-              // TODO: Navigate to profile screen
-              console.log('Navigate to profile');
-            }}
+            onPress={() => navigation.navigate('Profile' as never)}
           />
           <Divider />
           <SettingsItem
