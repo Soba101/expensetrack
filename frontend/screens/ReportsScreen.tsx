@@ -268,58 +268,69 @@ const ReportsScreen: React.FC = () => {
     </ScrollView>
   );
 
-  // Render enhanced tab navigation
-  const renderTabNavigation = () => (
-    <RNView style={{ 
-      backgroundColor: cardBg,
-      borderRadius: 16,
-      padding: 4,
-      marginHorizontal: 16,
-      marginBottom: 20,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-    }}>
-      {[
-        { key: 'overview', label: 'Overview', icon: 'analytics' },
-        { key: 'categories', label: 'Categories', icon: 'pie-chart' },
-        { key: 'trends', label: 'Trends', icon: 'trending-up' },
-        { key: 'vendors', label: 'Vendors', icon: 'business' }
-      ].map((tab) => (
-        <TouchableOpacity
-          key={tab.key}
-          style={{ flex: 1 }}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            setActiveTab(tab.key as ReportTab);
-          }}
-          activeOpacity={0.7}
-        >
-          <View
-            paddingVertical="$3"
-            borderRadius="$3"
-            backgroundColor={activeTab === tab.key ? accentColor : 'transparent'}
-            alignItems="center"
+  // Render enhanced tab navigation with 1x4 small square icons
+  const renderTabNavigation = () => {
+    const tabs = [
+      { key: 'overview', label: 'Overview', icon: 'analytics', bgColor: '#E3F2FD', iconColor: '#1976D2' },
+      { key: 'categories', label: 'Categories', icon: 'pie-chart', bgColor: '#FFF3E0', iconColor: '#F57C00' },
+      { key: 'trends', label: 'Trends', icon: 'trending-up', bgColor: '#E8F5E8', iconColor: '#388E3C' },
+      { key: 'vendors', label: 'Vendors', icon: 'business', bgColor: '#F3E5F5', iconColor: '#7B1FA2' }
+    ];
+
+    return (
+      <RNView style={{ 
+        flexDirection: 'row',
+        marginHorizontal: 16,
+        marginBottom: 24,
+        justifyContent: 'space-between'
+      }}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setActiveTab(tab.key as ReportTab);
+            }}
+            activeOpacity={0.7}
+            style={{ alignItems: 'center' }}
           >
-            <Ionicons
-              name={tab.icon as any}
-              size={18}
-              color={activeTab === tab.key ? 'white' : secondaryText}
-              style={{ marginBottom: 4 }}
-            />
+            {/* Square icon container */}
+            <View
+              width={72}
+              height={72}
+              borderRadius={20}
+              backgroundColor={activeTab === tab.key ? accentColor : cardBg}
+              alignItems="center"
+              justifyContent="center"
+              marginBottom="$2"
+              shadowColor="#000"
+              shadowOffset={{ width: 0, height: 2 }}
+              shadowOpacity={activeTab === tab.key ? 0.15 : 0.08}
+              shadowRadius={8}
+              borderWidth={activeTab === tab.key ? 0 : 1}
+              borderColor={activeTab === tab.key ? 'transparent' : border}
+            >
+              <Ionicons
+                name={tab.icon as any}
+                size={32}
+                color={activeTab === tab.key ? 'white' : tab.iconColor}
+              />
+            </View>
+            
+            {/* Label */}
             <Text
               fontSize="$2"
               fontWeight="600"
-              color={activeTab === tab.key ? 'white' : secondaryText}
+              color={activeTab === tab.key ? accentColor : secondaryText}
+              textAlign="center"
             >
               {tab.label}
             </Text>
-          </View>
-        </TouchableOpacity>
-      ))}
-    </RNView>
-  );
+          </TouchableOpacity>
+        ))}
+      </RNView>
+    );
+  };
 
   // Render enhanced summary cards with icons
   const renderSummaryCards = () => {
@@ -533,15 +544,6 @@ const ReportsScreen: React.FC = () => {
 
     const { categories } = analyticsData;
 
-    // Check for empty data
-    if (categories.length === 0) {
-      return renderEmptyState(
-        'No Categories Found',
-        'Add some expenses with categories to see detailed category analysis.',
-        'pie-chart-outline'
-      );
-    }
-
     // Prepare bar chart data
     const barChartData: BarChartData[] = categories.slice(0, 8).map(cat => ({
       name: cat.name,
@@ -549,30 +551,46 @@ const ReportsScreen: React.FC = () => {
       color: cat.color
     }));
 
+    console.log('Categories Tab - Data:', { 
+      categoriesLength: categories.length, 
+      barChartDataLength: barChartData.length,
+      categories: categories.map(c => ({ name: c.name, amount: c.totalSpent }))
+    });
+
+    // Check for empty data - show empty state if no real data
+    if (barChartData.length === 0) {
+      return renderEmptyState(
+        'No Categories Found',
+        'Add some expenses with categories to see detailed category analysis.',
+        'pie-chart-outline'
+      );
+    }
+
     return (
       <RNView style={{ gap: 20, paddingHorizontal: 16 }}>
         {/* Category Comparison Chart */}
-        {barChartData.length > 0 && (
-          <View
-            padding="$4"
-            borderRadius="$4"
-            backgroundColor={cardBg}
-            shadowColor="#000"
-            shadowOffset={{ width: 0, height: 2 }}
-            shadowOpacity={0.1}
-            shadowRadius={4}
-          >
-            <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
-              Category Comparison
-            </Text>
+        <View
+          padding="$4"
+          borderRadius="$4"
+          backgroundColor={cardBg}
+          shadowColor="#000"
+          shadowOffset={{ width: 0, height: 2 }}
+          shadowOpacity={0.1}
+          shadowRadius={4}
+        >
+          <Text fontSize="$4" fontWeight="600" color={primaryText} marginBottom="$4">
+            Category Comparison
+          </Text>
+          <RNView style={{ alignItems: 'center' }}>
             <BarChart
               data={barChartData}
-              height={300}
+              width={400}
+              height={320}
               orientation="horizontal"
               showValues={true}
             />
-          </View>
-        )}
+          </RNView>
+        </View>
 
         {/* Category Details */}
         <View

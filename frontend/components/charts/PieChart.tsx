@@ -24,25 +24,49 @@ interface PieChartProps {
 // Features: Interactive segments, clean design, responsive layout, touch handling
 const PieChart: React.FC<PieChartProps> = ({
   data,
-  size = 200,
-  showLabels = true,
+  size = 250,
+  showLabels = false,
   showLegend = true,
   onSegmentPress
 }) => {
   const theme = useTheme();
-  const primaryText = theme.color.val;
-  const secondaryText = theme.color11?.val || '#64748B';
+  const primaryText = '#000000';
+  const secondaryText = '#8E8E93';
   
+  // Validate data
+  if (!data || data.length === 0) {
+    return (
+      <View>
+        <RNView style={{ alignItems: 'center', padding: 20 }}>
+          <Text fontSize="$3" color={secondaryText}>No data available</Text>
+        </RNView>
+      </View>
+    );
+  }
+
   // Calculate center and radius
   const center = size / 2;
-  const radius = size / 2 - 20; // Leave space for labels
+  const radius = size / 2 - 30; // Leave more space for labels
   
+  // Calculate total and validate
+  const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
+  
+  if (total === 0) {
+    return (
+      <View>
+        <RNView style={{ alignItems: 'center', padding: 20 }}>
+          <Text fontSize="$3" color={secondaryText}>No spending data</Text>
+        </RNView>
+      </View>
+    );
+  }
+
   // Calculate angles for each segment
-  const total = data.reduce((sum, item) => sum + item.value, 0);
   let currentAngle = -90; // Start from top
   
-  const segments = data.map((item) => {
-    const angle = (item.value / total) * 360;
+  const segments = data.map((item, index) => {
+    const value = item.value || 0;
+    const angle = (value / total) * 360;
     const startAngle = currentAngle;
     const endAngle = currentAngle + angle;
     currentAngle = endAngle;
@@ -51,12 +75,13 @@ const PieChart: React.FC<PieChartProps> = ({
       ...item,
       startAngle,
       endAngle,
-      angle
+      angle,
+      value
     };
   });
   
   // Function to create SVG path for pie segment
-  const createPath = (startAngle: number, endAngle: number, radius: number) => {
+  const createPath = (startAngle: number, endAngle: number) => {
     const startAngleRad = (startAngle * Math.PI) / 180;
     const endAngleRad = (endAngle * Math.PI) / 180;
     
@@ -70,18 +95,6 @@ const PieChart: React.FC<PieChartProps> = ({
     return `M ${center} ${center} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
   };
   
-  // Function to get label position
-  const getLabelPosition = (startAngle: number, endAngle: number, radius: number) => {
-    const midAngle = (startAngle + endAngle) / 2;
-    const midAngleRad = (midAngle * Math.PI) / 180;
-    const labelRadius = radius * 0.7; // Position labels inside segments
-    
-    return {
-      x: center + labelRadius * Math.cos(midAngleRad),
-      y: center + labelRadius * Math.sin(midAngleRad)
-    };
-  };
-  
   // Handle segment press
   const handleSegmentPress = (segment: PieChartData) => {
     if (onSegmentPress) {
@@ -92,64 +105,50 @@ const PieChart: React.FC<PieChartProps> = ({
   return (
     <View>
       {/* Chart Container */}
-      <RNView style={{ alignItems: 'center', marginBottom: 16 }}>
+      <RNView style={{ alignItems: 'center', marginBottom: 20 }}>
         <Svg width={size} height={size}>
           {/* Render pie segments */}
-          {segments.map((segment, index) => (
-            <TouchableOpacity
-              key={segment.name}
-              onPress={() => handleSegmentPress(segment)}
-            >
+          {segments.map((segment, index) => {
+            if (segment.value <= 0 || segment.angle <= 0) return null;
+            
+            return (
               <Path
-                d={createPath(segment.startAngle, segment.endAngle, radius)}
-                fill={segment.color}
+                key={`segment-${index}`}
+                d={createPath(segment.startAngle, segment.endAngle)}
+                fill={segment.color || '#E5E5EA'}
                 stroke="white"
                 strokeWidth={2}
+                onPress={() => handleSegmentPress(segment)}
               />
-              
-              {/* Render labels if enabled and segment is large enough */}
-              {showLabels && segment.percentage > 5 && (
-                <SvgText
-                  x={getLabelPosition(segment.startAngle, segment.endAngle, radius).x}
-                  y={getLabelPosition(segment.startAngle, segment.endAngle, radius).y}
-                  fontSize="12"
-                  fill="white"
-                  fontWeight="600"
-                  textAnchor="middle"
-                  alignmentBaseline="middle"
-                >
-                  {segment.percentage.toFixed(0)}%
-                </SvgText>
-              )}
-            </TouchableOpacity>
-          ))}
+            );
+          })}
           
           {/* Center circle for donut effect */}
           <Circle
             cx={center}
             cy={center}
-            r={radius * 0.4}
-            fill={theme.background.val}
-            stroke={theme.borderColor.val}
+            r={radius * 0.5}
+            fill="white"
+            stroke="#E5E5EA"
             strokeWidth={1}
           />
           
           {/* Total amount in center */}
           <SvgText
             x={center}
-            y={center - 8}
-            fontSize="16"
+            y={center - 12}
+            fontSize="18"
             fill={primaryText}
             fontWeight="700"
             textAnchor="middle"
             alignmentBaseline="middle"
           >
-            ${total.toLocaleString()}
+            ${total.toFixed(0)}
           </SvgText>
           <SvgText
             x={center}
-            y={center + 12}
-            fontSize="12"
+            y={center + 16}
+            fontSize="14"
             fill={secondaryText}
             textAnchor="middle"
             alignmentBaseline="middle"
@@ -161,31 +160,38 @@ const PieChart: React.FC<PieChartProps> = ({
       
       {/* Legend */}
       {showLegend && (
-        <RNView style={{ gap: 8 }}>
+        <RNView style={{ gap: 12 }}>
           {data.map((item, index) => (
             <TouchableOpacity
-              key={item.name}
+              key={`legend-${index}`}
               onPress={() => handleSegmentPress(item)}
             >
               <RNView style={{ 
                 flexDirection: 'row', 
                 alignItems: 'center', 
                 justifyContent: 'space-between',
-                paddingVertical: 4
+                paddingVertical: 8,
+                minHeight: 44
               }}>
-                <RNView style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <RNView style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  flex: 1,
+                  marginRight: 16
+                }}>
                   {/* Color indicator */}
                   <RNView style={{
-                    width: 12,
-                    height: 12,
-                    borderRadius: 6,
-                    backgroundColor: item.color,
-                    marginRight: 8
+                    width: 16,
+                    height: 16,
+                    borderRadius: 8,
+                    backgroundColor: item.color || '#E5E5EA',
+                    marginRight: 12
                   }} />
                   
                   {/* Category name */}
                   <Text 
                     fontSize="$3" 
+                    fontWeight="500"
                     color={primaryText}
                     numberOfLines={1}
                     flex={1}
@@ -195,12 +201,16 @@ const PieChart: React.FC<PieChartProps> = ({
                 </RNView>
                 
                 {/* Amount and percentage */}
-                <RNView style={{ alignItems: 'flex-end' }}>
+                <RNView style={{ 
+                  alignItems: 'flex-end',
+                  minWidth: 80,
+                  flexShrink: 0
+                }}>
                   <Text fontSize="$3" fontWeight="600" color={primaryText}>
-                    ${item.value.toLocaleString()}
+                    ${(item.value || 0).toFixed(0)}
                   </Text>
-                  <Text fontSize="$2" color={secondaryText}>
-                    {item.percentage.toFixed(1)}%
+                  <Text fontSize="$2" color={secondaryText} marginTop={2}>
+                    {((item.value || 0) / total * 100).toFixed(1)}%
                   </Text>
                 </RNView>
               </RNView>

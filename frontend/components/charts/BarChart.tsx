@@ -38,19 +38,43 @@ const BarChart: React.FC<BarChartProps> = ({
   const secondaryText = theme.color11?.val || '#64748B';
   const gridColor = theme.borderColor.val;
   
+  // Validate data
+  if (!data || data.length === 0) {
+    return (
+      <View>
+        <RNView style={{ alignItems: 'center', padding: 20 }}>
+          <Text fontSize="$3" color={secondaryText}>No data available</Text>
+        </RNView>
+      </View>
+    );
+  }
+  
+  // Filter out invalid data and ensure positive values
+  const validData = data.filter(item => item && item.value > 0);
+  
+  if (validData.length === 0) {
+    return (
+      <View>
+        <RNView style={{ alignItems: 'center', padding: 20 }}>
+          <Text fontSize="$3" color={secondaryText}>No valid data to display</Text>
+        </RNView>
+      </View>
+    );
+  }
+  
   // Chart dimensions with padding
-  const padding = 50;
+  const padding = orientation === 'horizontal' ? 80 : 50; // More padding for horizontal charts to fit labels
   const chartWidth = width - (padding * 2);
   const chartHeight = height - (padding * 2);
   
   // Calculate max value for scaling
-  const maxValue = Math.max(...data.map(d => d.value));
+  const maxValue = Math.max(...validData.map(d => d.value));
   
   // Calculate bar dimensions
-  const barCount = data.length;
-  const barSpacing = 8;
+  const barCount = validData.length;
+  const barSpacing = 12; // Increased spacing for better readability
   const availableSpace = orientation === 'vertical' ? chartWidth : chartHeight;
-  const barSize = (availableSpace - (barSpacing * (barCount - 1))) / barCount;
+  const barSize = Math.max((availableSpace - (barSpacing * (barCount - 1))) / barCount, 20); // Minimum bar size increased
   
   // Format value for display
   const formatValue = (value: number) => {
@@ -152,20 +176,17 @@ const BarChart: React.FC<BarChartProps> = ({
   
   // Render bars
   const renderBars = () => {
-    return data.map((item, index) => {
-      const barValue = (item.value / maxValue);
+    return validData.map((item, index) => {
+      const barValue = Math.max(item.value / maxValue, 0.01); // Ensure minimum visibility
       
       if (orientation === 'vertical') {
         // Vertical bars
-        const barHeight = barValue * chartHeight;
+        const barHeight = Math.max(barValue * chartHeight, 2); // Minimum height of 2px
         const x = padding + index * (barSize + barSpacing);
         const y = padding + chartHeight - barHeight;
         
         return (
-          <TouchableOpacity
-            key={`bar-${index}`}
-            onPress={() => onBarPress?.(item, index)}
-          >
+          <React.Fragment key={`bar-${index}`}>
             <Rect
               x={x}
               y={y}
@@ -174,6 +195,7 @@ const BarChart: React.FC<BarChartProps> = ({
               fill={item.color}
               rx={4}
               ry={4}
+              onPress={() => onBarPress?.(item, index)}
             />
             
             {/* Value label on top of bar */}
@@ -201,19 +223,16 @@ const BarChart: React.FC<BarChartProps> = ({
             >
               {item.name.length > 8 ? item.name.substring(0, 8) + '...' : item.name}
             </SvgText>
-          </TouchableOpacity>
+          </React.Fragment>
         );
       } else {
         // Horizontal bars
-        const barWidth = barValue * chartWidth;
+        const barWidth = Math.max(barValue * chartWidth, 2); // Minimum width of 2px
         const x = padding;
         const y = padding + index * (barSize + barSpacing);
         
         return (
-          <TouchableOpacity
-            key={`bar-${index}`}
-            onPress={() => onBarPress?.(item, index)}
-          >
+          <React.Fragment key={`bar-${index}`}>
             <Rect
               x={x}
               y={y}
@@ -222,6 +241,7 @@ const BarChart: React.FC<BarChartProps> = ({
               fill={item.color}
               rx={4}
               ry={4}
+              onPress={() => onBarPress?.(item, index)}
             />
             
             {/* Value label at end of bar */}
@@ -229,7 +249,7 @@ const BarChart: React.FC<BarChartProps> = ({
               <SvgText
                 x={x + barWidth + 8}
                 y={y + barSize / 2 + 4}
-                fontSize="10"
+                fontSize="12"
                 fill={primaryText}
                 textAnchor="start"
                 fontWeight="600"
@@ -238,17 +258,18 @@ const BarChart: React.FC<BarChartProps> = ({
               </SvgText>
             )}
             
-            {/* Category name at start of bar */}
+            {/* Category name at start of bar - improved positioning */}
             <SvgText
-              x={padding - 10}
+              x={padding - 12}
               y={y + barSize / 2 + 4}
-              fontSize="10"
+              fontSize="11"
               fill={secondaryText}
               textAnchor="end"
+              fontWeight="500"
             >
-              {item.name.length > 12 ? item.name.substring(0, 12) + '...' : item.name}
+              {item.name.length > 18 ? item.name.substring(0, 15) + '...' : item.name}
             </SvgText>
-          </TouchableOpacity>
+          </React.Fragment>
         );
       }
     });
@@ -257,8 +278,15 @@ const BarChart: React.FC<BarChartProps> = ({
   return (
     <View>
       {/* Chart Container */}
-      <RNView style={{ alignItems: 'center' }}>
-        <Svg width={width} height={height}>
+      <RNView style={{ 
+        alignItems: 'center',
+        borderRadius: 8,
+        padding: 8
+      }}>
+        <Svg 
+          width={width} 
+          height={height}
+        >
           {/* Grid lines */}
           {showGrid && generateGridLines()}
           
@@ -284,7 +312,7 @@ const BarChart: React.FC<BarChartProps> = ({
             Total Items
           </Text>
           <Text fontSize="$4" fontWeight="600" color={primaryText}>
-            {data.length}
+            {validData.length}
           </Text>
         </RNView>
         
@@ -302,7 +330,7 @@ const BarChart: React.FC<BarChartProps> = ({
             Total Value
           </Text>
           <Text fontSize="$4" fontWeight="600" color={primaryText}>
-            {formatValue(data.reduce((sum, item) => sum + item.value, 0))}
+            {formatValue(validData.reduce((sum, item) => sum + item.value, 0))}
           </Text>
         </RNView>
       </RNView>
