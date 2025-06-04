@@ -1,7 +1,23 @@
 import * as FileSystem from 'expo-file-system';
 import { getAuthToken } from './authService';
 
-const API_BASE_URL = 'http://192.168.18.70:3001'; // Same as authService
+const API_BASE_URL = 'http://192.168.18.70:3001'; // Backend API URL (using local network IP for simulator)
+
+// Add a callback for handling authentication errors
+let onAuthError: (() => void) | null = null;
+
+// Function to set the auth error callback (will be called from AuthContext)
+export const setAuthErrorCallback = (callback: () => void) => {
+  onAuthError = callback;
+};
+
+// Helper function to handle authentication errors
+const handleAuthError = () => {
+  console.log('🔒 Authentication error detected in receipt service - token expired or invalid');
+  if (onAuthError) {
+    onAuthError(); // This will trigger logout in AuthContext
+  }
+};
 
 // Interface for receipt upload data
 export interface ReceiptUploadData {
@@ -85,6 +101,13 @@ export const uploadReceipt = async (receiptData: ReceiptUploadData): Promise<Rec
       body: JSON.stringify(receiptData),
     });
 
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid in receipt upload - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
     const data = await response.json();
 
     if (!response.ok) {
@@ -115,6 +138,13 @@ export const getReceipts = async (): Promise<any[]> => {
         'Authorization': `Bearer ${token}`,
       },
     });
+
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid in get receipts - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
 
     const data = await response.json();
 

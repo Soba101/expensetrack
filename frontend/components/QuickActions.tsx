@@ -14,6 +14,7 @@ type RootStackParamList = {
   AddEditExpense: undefined;
   Reports: undefined;
   Categories: undefined;
+  Settings: undefined;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,42 +28,40 @@ interface QuickActionsProps {
 // Fallback styles using StyleSheet
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 0,
     borderRadius: 16,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    marginBottom: 24,
+    backgroundColor: '#ffffff',
+    marginBottom: 16,
   },
   header: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1F2937',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   row: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
+    gap: 8,
+    marginBottom: 8,
   },
   button: {
     flex: 1,
-    padding: 16,
+    padding: 10,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 100,
+    minHeight: 85,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   iconContainer: {
-    padding: 12,
+    padding: 10,
     borderRadius: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -71,7 +70,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1F2937',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   buttonSubtitle: {
     fontSize: 12,
@@ -262,6 +261,59 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onUploadPress, isUploading 
           <ActionButton action={actions[2]} index={2} />
           <ActionButton action={actions[3]} index={3} />
         </RNView>
+      </RNView>
+
+      {/* Simple text links for Settings and Categories */}
+      <RNView style={{ 
+        flexDirection: 'row', 
+        justifyContent: 'center', 
+        gap: 32, 
+        marginTop: 12,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6'
+      }}>
+        <TouchableOpacity 
+          onPress={() => {
+            try {
+              hapticFeedback.buttonPress();
+              navigation.navigate('Categories');
+            } catch (error) {
+              console.error('QuickActions: Error navigating to Categories:', error);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <RNText style={{
+            fontSize: 15,
+            color: '#6B7280',
+            fontWeight: '500',
+            letterSpacing: 0.3
+          }}>
+            Categories
+          </RNText>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          onPress={() => {
+            try {
+              hapticFeedback.buttonPress();
+              navigation.navigate('Settings');
+            } catch (error) {
+              console.error('QuickActions: Error navigating to Settings:', error);
+            }
+          }}
+          activeOpacity={0.7}
+        >
+          <RNText style={{
+            fontSize: 15,
+            color: '#6B7280',
+            fontWeight: '500',
+            letterSpacing: 0.3
+          }}>
+            Settings
+          </RNText>
+        </TouchableOpacity>
       </RNView>
     </RNView>
   );

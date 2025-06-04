@@ -85,11 +85,11 @@ const UserInfo = () => {
 
   // Using Tamagui theme instead of useColorModeValue
   const theme = useTheme();
-  const cardBgSolid = '#3B82F6'; // Blue color
-  const text = theme.color.val;
-  const subText = '#64748B';
-  const iconColor = '#F59E0B';
-  const dateColor = '#94A3B8';
+  const cardBgSolid = '#3B82F6'; // Blue background color
+  const text = theme.color.val;   // Main text (not used in this component)
+  const subText = 'rgba(255, 255, 255, 0.85)';  // Improved subtitle text - semi-transparent white
+  const iconColor = '#FCD34D';    // Brighter yellow icon for better contrast
+  const dateColor = 'rgba(255, 255, 255, 0.75)';  // Improved date text - lighter semi-transparent white
 
   return (
     <View 

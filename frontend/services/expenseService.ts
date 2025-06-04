@@ -3,6 +3,22 @@ import * as receiptService from './receiptService';
 
 const API_BASE_URL = 'http://192.168.18.70:3001'; // Updated to current IP address
 
+// Add a callback for handling authentication errors
+let onAuthError: (() => void) | null = null;
+
+// Function to set the auth error callback (will be called from AuthContext)
+export const setAuthErrorCallback = (callback: () => void) => {
+  onAuthError = callback;
+};
+
+// Helper function to handle authentication errors
+const handleAuthError = () => {
+  console.log('🔒 Authentication error detected - token expired or invalid');
+  if (onAuthError) {
+    onAuthError(); // This will trigger logout in AuthContext
+  }
+};
+
 // Interface for expense data
 export interface ExpenseData {
   amount: number;
@@ -122,6 +138,13 @@ export const saveExpense = async (expenseData: ExpenseData): Promise<ExpenseResp
     console.log('Response status:', response.status);
     console.log('Response headers:', response.headers);
 
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+
     // Check if response is actually JSON
     const contentType = response.headers.get('content-type');
     if (!contentType || !contentType.includes('application/json')) {
@@ -178,6 +201,13 @@ export const getExpenses = async (): Promise<any[]> => {
 
     console.log('getExpenses: Response received, status:', response.status);
     console.log('getExpenses: Response ok:', response.ok);
+
+    // Handle authentication errors (token expired/invalid)
+    if (response.status === 401) {
+      console.log('🔒 Token expired or invalid - triggering logout');
+      handleAuthError();
+      throw new Error('Your session has expired. Please log in again.');
+    }
 
     const data = await response.json();
     console.log('getExpenses: Data parsed, type:', typeof data, 'length:', Array.isArray(data) ? data.length : 'not array');
