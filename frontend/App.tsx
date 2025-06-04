@@ -69,7 +69,7 @@ const AuthenticatedStack = () => (
     <Stack.Screen name="Categories" component={CategoryManagementScreen} options={{ headerShown: false }} />
     <Stack.Screen name="CategoriesView" component={CategoriesScreen} options={{ title: 'Categories Overview' }} />
     <Stack.Screen name="Reports" component={ReportsScreen} options={{ headerShown: false }} />
-    <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+    <Stack.Screen name="Settings" component={SettingsScreen} options={{ headerShown: false }} />
     <Stack.Screen name="Profile" component={ProfileScreen} options={{ headerShown: false }} />
     <Stack.Screen name="About" component={AboutScreen} options={{ title: 'About' }} />
   </Stack.Navigator>
