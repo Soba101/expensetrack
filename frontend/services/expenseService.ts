@@ -1,7 +1,8 @@
 import { getAuthToken } from './authService';
 import * as receiptService from './receiptService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = 'http://192.168.18.70:3001'; // Updated to current IP address
+const API_BASE_URL = 'http://localhost:3001'; // Backend API URL (using localhost for better compatibility)
 
 // Add a callback for handling authentication errors
 let onAuthError: (() => void) | null = null;
