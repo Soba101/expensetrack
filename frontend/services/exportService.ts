@@ -5,7 +5,8 @@ import {
   getReportsAnalytics, 
   getExpenses, 
   TimePeriod,
-  ReportsAnalytics 
+  ReportsAnalytics,
+  CustomDateRange 
 } from './expenseService';
 
 // Interface for export options
@@ -14,6 +15,7 @@ export interface ExportOptions {
   includeAnalytics: boolean;
   includeCharts: boolean;
   format: 'csv' | 'json';
+  customRange?: CustomDateRange;
 }
 
 // Interface for export result
@@ -29,36 +31,45 @@ export interface ExportResult {
 class MockExportService {
   
   // Generate CSV content from expense data
-  private generateExpenseCSV = async (timePeriod: TimePeriod): Promise<string> => {
+  private generateExpenseCSV = async (timePeriod: TimePeriod, customRange?: CustomDateRange): Promise<string> => {
     try {
       const expenses = await getExpenses();
       
       // Filter expenses by time period
       const now = new Date();
       let startDate: Date;
+      let endDate: Date = now;
       
-      switch (timePeriod) {
-        case 'week':
-          startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-          break;
-        case 'month':
-          startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-          break;
-        case 'quarter':
-          startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-          break;
-        case 'year':
-          startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
-          break;
-        case 'all':
-        default:
-          startDate = new Date(0);
-          break;
+      if (timePeriod === 'custom' && customRange) {
+        // Use custom date range
+        startDate = new Date(customRange.startDate);
+        endDate = new Date(customRange.endDate);
+        endDate.setHours(23, 59, 59, 999); // Include full end day
+      } else {
+        // Use predefined time periods
+        switch (timePeriod) {
+          case 'week':
+            startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            break;
+          case 'month':
+            startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+            break;
+          case 'quarter':
+            startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+            break;
+          case 'year':
+            startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+            break;
+          case 'all':
+          default:
+            startDate = new Date(0);
+            break;
+        }
       }
       
       const filteredExpenses = expenses.filter(expense => {
         const expenseDate = new Date(expense.date);
-        return expenseDate >= startDate;
+        return expenseDate >= startDate && expenseDate <= endDate;
       });
       
       // Sort by date (newest first)
@@ -99,47 +110,54 @@ class MockExportService {
   };
   
   // Generate analytics CSV content
-  private generateAnalyticsCSV = async (timePeriod: TimePeriod): Promise<string> => {
+  private generateAnalyticsCSV = async (timePeriod: TimePeriod, customRange?: CustomDateRange): Promise<string> => {
     try {
-      const analytics = await getReportsAnalytics(timePeriod);
+      const analytics = await getReportsAnalytics(timePeriod, customRange);
       
       let csvContent = '';
       
       // Summary section
-      csvContent += 'EXPENSE SUMMARY\n';
-      csvContent += 'Metric,Value\n';
+      csvContent += 'EXPENSE ANALYTICS SUMMARY\n';
+      csvContent += `Time Period,${this.formatTimePeriod(timePeriod)}\n`;
+      if (timePeriod === 'custom' && customRange) {
+        csvContent += `Date Range,${customRange.startDate} to ${customRange.endDate}\n`;
+      }
       csvContent += `Total Spent,$${analytics.summary.totalSpent.toFixed(2)}\n`;
       csvContent += `Transaction Count,${analytics.summary.transactionCount}\n`;
       csvContent += `Average Transaction,$${analytics.summary.averageTransaction.toFixed(2)}\n`;
       csvContent += `Top Category,${analytics.summary.topCategory}\n`;
       csvContent += `Top Vendor,${analytics.summary.topVendor}\n`;
-      csvContent += `Time Period,${this.formatTimePeriod(timePeriod)}\n\n`;
+      csvContent += '\n';
       
       // Categories section
-      csvContent += 'CATEGORY BREAKDOWN\n';
-      csvContent += 'Category,Amount,Transactions,Average,Percentage,Trend\n';
-      analytics.categories.forEach(cat => {
-        csvContent += `${this.escapeCSVField(cat.name)},`;
-        csvContent += `$${cat.totalSpent.toFixed(2)},`;
-        csvContent += `${cat.transactionCount},`;
-        csvContent += `$${cat.averageAmount.toFixed(2)},`;
-        csvContent += `${cat.percentage.toFixed(1)}%,`;
-        csvContent += `${cat.trend}\n`;
-      });
-      csvContent += '\n';
+      if (analytics.categories.length > 0) {
+        csvContent += 'CATEGORY BREAKDOWN\n';
+        csvContent += 'Category,Total Spent,Transaction Count,Average Amount,Percentage,Trend\n';
+        analytics.categories.forEach(category => {
+          csvContent += `${category.name},`;
+          csvContent += `$${category.totalSpent.toFixed(2)},`;
+          csvContent += `${category.transactionCount},`;
+          csvContent += `$${category.averageAmount.toFixed(2)},`;
+          csvContent += `${category.percentage.toFixed(1)}%,`;
+          csvContent += `${category.trend}\n`;
+        });
+        csvContent += '\n';
+      }
       
       // Vendors section
-      csvContent += 'TOP VENDORS\n';
-      csvContent += 'Vendor,Amount,Transactions,Average,Last Transaction,Categories\n';
-      analytics.vendors.forEach(vendor => {
-        csvContent += `${this.escapeCSVField(vendor.name)},`;
-        csvContent += `$${vendor.totalSpent.toFixed(2)},`;
-        csvContent += `${vendor.transactionCount},`;
-        csvContent += `$${vendor.averageAmount.toFixed(2)},`;
-        csvContent += `${this.formatDateForCSV(vendor.lastTransaction)},`;
-        csvContent += `"${vendor.categories.join('; ')}"\n`;
-      });
-      csvContent += '\n';
+      if (analytics.vendors.length > 0) {
+        csvContent += 'TOP VENDORS\n';
+        csvContent += 'Vendor,Total Spent,Transaction Count,Average Amount,Last Transaction,Categories\n';
+        analytics.vendors.forEach(vendor => {
+          csvContent += `${vendor.name},`;
+          csvContent += `$${vendor.totalSpent.toFixed(2)},`;
+          csvContent += `${vendor.transactionCount},`;
+          csvContent += `$${vendor.averageAmount.toFixed(2)},`;
+          csvContent += `${this.formatDateForCSV(vendor.lastTransaction)},`;
+          csvContent += `"${vendor.categories.join(', ')}"\n`;
+        });
+        csvContent += '\n';
+      }
       
       // Trends section
       if (analytics.trends.length > 0) {
@@ -160,36 +178,43 @@ class MockExportService {
   };
   
   // Generate JSON export
-  private generateJSON = async (timePeriod: TimePeriod, includeAnalytics: boolean): Promise<string> => {
+  private generateJSON = async (timePeriod: TimePeriod, includeAnalytics: boolean, customRange?: CustomDateRange): Promise<string> => {
     try {
       const expenses = await getExpenses();
       
       // Filter expenses by time period (same logic as CSV)
       const now = new Date();
       let startDate: Date;
+      let endDate: Date = now;
       
-      switch (timePeriod) {
-        case 'week':
-          startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-          break;
-        case 'month':
-          startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-          break;
-        case 'quarter':
-          startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-          break;
-        case 'year':
-          startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
-          break;
-        case 'all':
-        default:
-          startDate = new Date(0);
-          break;
+      if (timePeriod === 'custom' && customRange) {
+        startDate = new Date(customRange.startDate);
+        endDate = new Date(customRange.endDate);
+        endDate.setHours(23, 59, 59, 999);
+      } else {
+        switch (timePeriod) {
+          case 'week':
+            startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            break;
+          case 'month':
+            startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+            break;
+          case 'quarter':
+            startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+            break;
+          case 'year':
+            startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+            break;
+          case 'all':
+          default:
+            startDate = new Date(0);
+            break;
+        }
       }
       
       const filteredExpenses = expenses.filter(expense => {
         const expenseDate = new Date(expense.date);
-        return expenseDate >= startDate;
+        return expenseDate >= startDate && expenseDate <= endDate;
       });
       
       const exportData: any = {
@@ -201,9 +226,14 @@ class MockExportService {
         expenses: filteredExpenses
       };
       
+      // Add custom range info if applicable
+      if (timePeriod === 'custom' && customRange) {
+        exportData.exportInfo.customDateRange = customRange;
+      }
+      
       // Include analytics if requested
       if (includeAnalytics) {
-        const analytics = await getReportsAnalytics(timePeriod);
+        const analytics = await getReportsAnalytics(timePeriod, customRange);
         exportData.analytics = analytics;
       }
       
@@ -224,15 +254,15 @@ class MockExportService {
       
       // Generate content based on format
       if (options.format === 'json') {
-        content = await this.generateJSON(options.timePeriod, options.includeAnalytics);
+        content = await this.generateJSON(options.timePeriod, options.includeAnalytics, options.customRange);
         fileName = `expenses_${this.formatTimePeriod(options.timePeriod)}_${this.getDateString()}.json`;
       } else {
         // CSV format
         if (options.includeAnalytics) {
-          content = await this.generateAnalyticsCSV(options.timePeriod);
+          content = await this.generateAnalyticsCSV(options.timePeriod, options.customRange);
           fileName = `expense_report_${this.formatTimePeriod(options.timePeriod)}_${this.getDateString()}.csv`;
         } else {
-          content = await this.generateExpenseCSV(options.timePeriod);
+          content = await this.generateExpenseCSV(options.timePeriod, options.customRange);
           fileName = `expenses_${this.formatTimePeriod(options.timePeriod)}_${this.getDateString()}.csv`;
         }
       }
@@ -316,7 +346,8 @@ class MockExportService {
       case 'quarter': return 'Last_3_Months';
       case 'year': return 'Last_Year';
       case 'all': return 'All_Time';
-      default: return 'Custom';
+      case 'custom': return 'Custom_Range';
+      default: return 'Unknown';
     }
   };
   

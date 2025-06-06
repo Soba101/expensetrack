@@ -108,7 +108,19 @@ export interface RecentTransaction {
 }
 
 // Interface for time period options
-export type TimePeriod = 'week' | 'month' | 'quarter' | 'year' | 'all';
+export type TimePeriod = 'week' | 'month' | 'quarter' | 'year' | 'all' | 'custom';
+
+// Interface for custom date range
+export interface CustomDateRange {
+  startDate: string; // ISO date string (YYYY-MM-DD)
+  endDate: string;   // ISO date string (YYYY-MM-DD)
+}
+
+// Interface for analytics request with optional custom date range
+export interface AnalyticsRequest {
+  timePeriod: TimePeriod;
+  customRange?: CustomDateRange;
+}
 
 // Interface for trend data point
 export interface TrendDataPoint {
@@ -817,37 +829,51 @@ export const getCategories = async (): Promise<string[]> => {
 };
 
 // Function to get analytics data for reports screen
-export const getReportsAnalytics = async (timePeriod: TimePeriod = 'month'): Promise<ReportsAnalytics> => {
+export const getReportsAnalytics = async (
+  timePeriod: TimePeriod = 'month', 
+  customRange?: CustomDateRange
+): Promise<ReportsAnalytics> => {
   try {
     const expenses = await getExpenses();
     
     // Calculate date range based on time period
     const now = new Date();
     let startDate: Date;
+    let endDate: Date = now; // Default end date is now
     
-    switch (timePeriod) {
-      case 'week':
-        startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        break;
-      case 'month':
-        startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-        break;
-      case 'quarter':
-        startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
-        break;
-      case 'year':
-        startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
-        break;
-      case 'all':
-      default:
-        startDate = new Date(0); // Beginning of time
-        break;
+    if (timePeriod === 'custom' && customRange) {
+      // Use custom date range
+      startDate = new Date(customRange.startDate);
+      endDate = new Date(customRange.endDate);
+      
+      // Ensure end date includes the full day
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      // Use predefined time periods
+      switch (timePeriod) {
+        case 'week':
+          startDate = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+          break;
+        case 'month':
+          startDate = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+          break;
+        case 'quarter':
+          startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+          break;
+        case 'year':
+          startDate = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000));
+          break;
+        case 'all':
+        default:
+          startDate = new Date(0); // Beginning of time
+          break;
+      }
     }
     
     // Filter expenses by time period
     const filteredExpenses = expenses.filter(expense => {
       const expenseDate = new Date(expense.date);
-      return expenseDate >= startDate;
+      return expenseDate >= startDate && expenseDate <= endDate;
     });
     
     // Calculate summary statistics

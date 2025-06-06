@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ScrollView, TouchableOpacity, RefreshControl, Alert, Text as RNText } from 'react-native';
 import { View as RNView } from 'react-native';
 import { View, Text, useTheme } from '@tamagui/core';
@@ -10,12 +10,14 @@ import PieChart, { PieChartData } from '../components/charts/PieChart';
 import LineChart, { LineChartDataPoint } from '../components/charts/LineChart';
 import BarChart, { BarChartData } from '../components/charts/BarChart';
 import ExportModal from '../components/ExportModal';
+import DateRangePicker from '../components/DateRangePicker';
 import SkeletonLoader from '../components/SkeletonLoader';
 import { useToast } from '../components/Toast';
 import { 
   getReportsAnalytics, 
   ReportsAnalytics, 
-  TimePeriod
+  TimePeriod,
+  CustomDateRange
 } from '../services/expenseService';
 import exportService, { ExportOptions, ExportResult } from '../services/exportService';
 
@@ -42,7 +44,8 @@ const TIME_PERIODS: { value: TimePeriod; label: string }[] = [
   { value: 'month', label: 'Last 30 Days' },
   { value: 'quarter', label: 'Last 3 Months' },
   { value: 'year', label: 'Last Year' },
-  { value: 'all', label: 'All Time' }
+  { value: 'all', label: 'All Time' },
+  { value: 'custom', label: 'Custom Range' }
 ];
 
 // ReportsScreen: Comprehensive analytics and reporting dashboard
@@ -56,11 +59,13 @@ const ReportsScreen: React.FC = () => {
   // State management
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('month');
+  const [customDateRange, setCustomDateRange] = useState<CustomDateRange | null>(null);
   const [analyticsData, setAnalyticsData] = useState<ReportsAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
 
   // Theme setup with enhanced colors
   const theme = useTheme();
@@ -75,8 +80,10 @@ const ReportsScreen: React.FC = () => {
   const errorColor = '#FF3B30';
 
   // Load analytics data with enhanced error handling
-  const loadAnalytics = async (showRefresh = false) => {
+  const loadAnalytics = useCallback(async (showRefresh = false) => {
     try {
+      console.log('🔄 loadAnalytics called - timePeriod:', timePeriod, 'customDateRange:', customDateRange, 'showRefresh:', showRefresh);
+      
       if (showRefresh) {
         setRefreshing(true);
         // Haptic feedback for refresh
@@ -86,7 +93,16 @@ const ReportsScreen: React.FC = () => {
       }
       setError(null);
 
-      const data = await getReportsAnalytics(timePeriod);
+      // Pass custom date range if using custom time period
+      const data = await getReportsAnalytics(
+        timePeriod, 
+        timePeriod === 'custom' ? customDateRange || undefined : undefined
+      );
+      console.log('✅ Analytics data loaded successfully:', {
+        timePeriod,
+        transactionCount: data.summary.transactionCount,
+        totalSpent: data.summary.totalSpent
+      });
       setAnalyticsData(data);
     } catch (err: any) {
       console.error('Failed to load analytics:', err);
@@ -97,12 +113,13 @@ const ReportsScreen: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [timePeriod, customDateRange]);
 
   // Load data on component mount and when time period changes
   useEffect(() => {
+    console.log('🔄 useEffect triggered - timePeriod:', timePeriod, 'customDateRange:', customDateRange);
     loadAnalytics();
-  }, [timePeriod]);
+  }, [timePeriod, customDateRange]);
 
   // Handle refresh with haptic feedback
   const handleRefresh = async () => {
@@ -171,8 +188,26 @@ const ReportsScreen: React.FC = () => {
 
   // Handle time period change with haptic feedback
   const handleTimePeriodChange = async (period: TimePeriod) => {
+    console.log('🔄 handleTimePeriodChange called with period:', period);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setTimePeriod(period);
+    
+    if (period === 'custom') {
+      // Show date range picker for custom selection
+      setShowDateRangePicker(true);
+    } else {
+      // Clear custom date range when switching to predefined periods
+      setCustomDateRange(null);
+      setTimePeriod(period);
+      console.log('🔄 Set timePeriod to:', period);
+    }
+  };
+
+  // Handle custom date range selection
+  const handleCustomDateRangeSelect = async (range: CustomDateRange) => {
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setCustomDateRange(range);
+    setTimePeriod('custom');
+    setShowDateRangePicker(false);
   };
 
   // Render skeleton loading for summary cards
@@ -225,48 +260,83 @@ const ReportsScreen: React.FC = () => {
   );
 
   // Render enhanced time period selector
-  const renderTimePeriodSelector = () => (
-    <ScrollView 
-      horizontal 
-      showsHorizontalScrollIndicator={false}
-      style={{ marginBottom: 20 }}
-      contentContainerStyle={{ paddingHorizontal: 16 }}
-    >
-      <RNView style={{ flexDirection: 'row', gap: 8 }}>
-        {TIME_PERIODS.map((period) => (
-          <TouchableOpacity
-            key={period.value}
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              setTimePeriod(period.value);
-            }}
-            activeOpacity={0.7}
-          >
-            <View
-              paddingHorizontal="$4"
-              paddingVertical="$3"
-              borderRadius="$8"
-              backgroundColor={timePeriod === period.value ? accentColor : cardBg}
-              borderWidth={1}
-              borderColor={timePeriod === period.value ? accentColor : border}
-              shadowColor="#000"
-              shadowOffset={{ width: 0, height: 1 }}
-              shadowOpacity={0.1}
-              shadowRadius={2}
-            >
-              <Text
-                fontSize="$3"
-                fontWeight="600"
-                color={timePeriod === period.value ? 'white' : primaryText}
+  const renderTimePeriodSelector = () => {
+    // Helper function to get display label for current selection
+    const getCurrentPeriodLabel = () => {
+      if (timePeriod === 'custom' && customDateRange) {
+        const startDate = new Date(customDateRange.startDate);
+        const endDate = new Date(customDateRange.endDate);
+        const formatDate = (date: Date) => date.toLocaleDateString('en-US', { 
+          month: 'short', 
+          day: 'numeric',
+          year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+        });
+        return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+      }
+      const period = TIME_PERIODS.find(p => p.value === timePeriod);
+      return period?.label || 'Unknown';
+    };
+
+    return (
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={{ marginBottom: 20 }}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+      >
+        <RNView style={{ flexDirection: 'row', gap: 8 }}>
+          {TIME_PERIODS.map((period) => {
+            const isSelected = timePeriod === period.value;
+            const isCustomSelected = period.value === 'custom' && timePeriod === 'custom';
+            
+            return (
+              <TouchableOpacity
+                key={period.value}
+                onPress={() => {
+                  console.log('🔄 TouchableOpacity pressed for period:', period.value);
+                  handleTimePeriodChange(period.value);
+                }}
+                activeOpacity={0.7}
               >
-                {period.label}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </RNView>
-    </ScrollView>
-  );
+                <View
+                  paddingHorizontal="$4"
+                  paddingVertical="$3"
+                  borderRadius="$8"
+                  backgroundColor={isSelected ? accentColor : cardBg}
+                  borderWidth={1}
+                  borderColor={isSelected ? accentColor : border}
+                  shadowColor="#000"
+                  shadowOffset={{ width: 0, height: 1 }}
+                  shadowOpacity={0.1}
+                  shadowRadius={2}
+                  minWidth={isCustomSelected ? 140 : 'auto'}
+                >
+                  <Text
+                    fontSize="$3"
+                    fontWeight="600"
+                    color={isSelected ? 'white' : primaryText}
+                    textAlign="center"
+                  >
+                    {isCustomSelected ? getCurrentPeriodLabel() : period.label}
+                  </Text>
+                  {isCustomSelected && (
+                    <Text
+                      fontSize="$1"
+                      color={isSelected ? 'rgba(255,255,255,0.8)' : secondaryText}
+                      textAlign="center"
+                      marginTop="$1"
+                    >
+                      Custom Range
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </RNView>
+      </ScrollView>
+    );
+  };
 
   // Render enhanced tab navigation with 1x4 small square icons
   const renderTabNavigation = () => {
@@ -1084,6 +1154,15 @@ const ReportsScreen: React.FC = () => {
         onClose={() => setShowExportModal(false)}
         onExport={handleExportData}
         currentTimePeriod={timePeriod}
+        customDateRange={customDateRange}
+      />
+
+      {/* Custom Date Range Picker */}
+      <DateRangePicker
+        isOpen={showDateRangePicker}
+        onClose={() => setShowDateRangePicker(false)}
+        onSelectRange={handleCustomDateRangeSelect}
+        initialRange={customDateRange || undefined}
       />
     </View>
   );

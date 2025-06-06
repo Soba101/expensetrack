@@ -3,7 +3,7 @@ import { TouchableOpacity, ScrollView as RNScrollView } from 'react-native';
 import { View as RNView } from 'react-native';
 import { View, Text, useTheme } from '@tamagui/core';
 import { Download, FileText, Database, Calendar, Settings, Check } from '@tamagui/lucide-icons';
-import { TimePeriod } from '../services/expenseService';
+import { TimePeriod, CustomDateRange } from '../services/expenseService';
 import { ExportOptions } from '../services/exportService';
 
 // Props interface for the export modal
@@ -12,15 +12,17 @@ interface ExportModalProps {
   onClose: () => void;
   onExport: (options: ExportOptions) => Promise<void>;
   currentTimePeriod: TimePeriod;
+  customDateRange?: CustomDateRange | null;
 }
 
 // ExportModal: Provides UI for selecting export options
-// Features: Time period selection, format choice, data inclusion options
+// Features: Time period selection, format choice, data inclusion options, custom date range support
 export const ExportModal: React.FC<ExportModalProps> = ({
   isOpen,
   onClose,
   onExport,
-  currentTimePeriod
+  currentTimePeriod,
+  customDateRange
 }) => {
   // State for export options
   const [timePeriod, setTimePeriod] = useState<TimePeriod>(currentTimePeriod);
@@ -37,6 +39,30 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const primaryText = theme.color.val;
   const secondaryText = theme.color11?.val || '#64748B';
   const accentColor = '#3B82F6';
+
+  // Helper function to get time period display label
+  const getTimePeriodDisplayLabel = (period: TimePeriod): string => {
+    if (period === 'custom' && customDateRange) {
+      const startDate = new Date(customDateRange.startDate);
+      const endDate = new Date(customDateRange.endDate);
+      const formatDate = (date: Date) => date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+      });
+      return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+    }
+    
+    switch (period) {
+      case 'week': return 'Last 7 days';
+      case 'month': return 'Last 30 days';
+      case 'quarter': return 'Last 3 months';
+      case 'year': return 'Last year';
+      case 'all': return 'All time';
+      case 'custom': return 'Custom range';
+      default: return 'Unknown';
+    }
+  };
 
   // Handle export button press
   const handleExport = async () => {
@@ -128,7 +154,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   { value: 'month', label: 'Last 30 days' },
                   { value: 'quarter', label: 'Last 3 months' },
                   { value: 'year', label: 'Last year' },
-                  { value: 'all', label: 'All time' }
+                  { value: 'all', label: 'All time' },
+                  ...(currentTimePeriod === 'custom' && customDateRange ? [
+                    { value: 'custom', label: getTimePeriodDisplayLabel('custom') }
+                  ] : [])
                 ].map((period) => (
                   <TouchableOpacity
                     key={period.value}
@@ -154,9 +183,16 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                           <Check size={12} color="white" />
                         )}
                       </RNView>
-                      <Text fontSize="$3" color={primaryText}>
-                        {period.label}
-                      </Text>
+                      <RNView style={{ flex: 1 }}>
+                        <Text fontSize="$3" color={primaryText}>
+                          {period.label}
+                        </Text>
+                        {period.value === 'custom' && (
+                          <Text fontSize="$2" color={secondaryText}>
+                            Custom date range
+                          </Text>
+                        )}
+                      </RNView>
                     </RNView>
                   </TouchableOpacity>
                 ))}
@@ -323,7 +359,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 Format: {format.toUpperCase()}
               </Text>
               <Text fontSize="$2" color={secondaryText}>
-                Period: {getTimePeriodLabel(timePeriod)}
+                Period: {getTimePeriodDisplayLabel(timePeriod)}
               </Text>
               <Text fontSize="$2" color={secondaryText}>
                 Includes: Expense data{includeAnalytics ? ', Analytics' : ''}
@@ -387,18 +423,6 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       </View>
     </RNView>
   );
-};
-
-// Helper function to get readable time period labels
-const getTimePeriodLabel = (period: TimePeriod): string => {
-  switch (period) {
-    case 'week': return 'Last 7 days';
-    case 'month': return 'Last 30 days';
-    case 'quarter': return 'Last 3 months';
-    case 'year': return 'Last year';
-    case 'all': return 'All time';
-    default: return 'Custom';
-  }
 };
 
 export default ExportModal; 
